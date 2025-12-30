@@ -1,0 +1,106 @@
+﻿@using P1F_TPM360_HUB.Function
+@using Microsoft.AspNetCore.Http
+@using System.Security.Claims;
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    Layout = "~/Views/Shared/_LayoutDash.cshtml";
+
+    // Ambil data user dari SSO claim
+    var sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var name = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
+    var level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
+    var userLevels = level?.Split(';') ?? new string[0];
+
+    var canAccessMAT = userLevels.Contains("mat") || userLevels.Contains("mat_admin") || userLevels.Contains("superadmin");
+    var canAccessCMS = userLevels.Contains("cm_user") || userLevels.Contains("cm_admin") || userLevels.Contains("superadmin");
+
+    var nonce = Context.Items["CspNonce"];
+}
+
+<!-- Wrapper utama fix full screen, tanpa scroll -->
+<div class="d-flex flex-column justify-content-start w-100 vh-100 overflow-hidden position-relative">
+    <!-- Hero Section -->
+    <div class="container-fluid p-0 position-relative" style="height: 400px;">
+        <img src="~/images/background/maintenance.jpg"
+             style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:0;">
+
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); z-index:1;"></div>
+
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; z-index:2;">
+            <img src="~/images/logo/sembserewhite.svg" alt="SEMB SERE Logo" class="logo-img">
+            <h6 class="text-light mt-2" style="font-weight: normal; font-size:1.2em;">
+                "Driving Total Productive Maintenance Excellence in Every Process"
+            </h6>
+        </div>
+    </div>
+
+    <!-- Content Cards -->
+    <div class="container-fluid mt-4">
+        <div class="row gx-4 gy-4">
+            <!-- MAT Card -->
+            <div class="col-md-6 card-tag @(canAccessMAT ? "" : "disabled-wrapper")">
+                <div class="card w-100 @(canAccessMAT ? "bg-white" : "bg-disabled") shadow mb-3"
+                     data-aos="fade-right" data-aos-easing="ease-out-cubic" data-aos-duration="500"
+                     style="border-radius:20px; border-width:2px;">
+                        <a href="@Url.Action("Observation", "MAT")" class="text-decoration-none">
+                            <div class="card-body d-flex align-items-center text-dark">
+                                <img src="~/assets/machine.png" style="width:100px; height:100px; margin-right:15px;">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">Machine Abnormality Tracking</h6>
+                                    <p class="mb-0">Track machine anomalies to minimize downtime and maintain efficiency.</p>
+                                </div>
+                            </div>
+                        </a>
+                </div>
+            </div>
+
+            <!-- CMS Card -->
+            <div class="col-md-6 card-tag @(canAccessCMS ? "" : "disabled-wrapper")">
+                <div class="card w-100 @(canAccessCMS ? "bg-white" : "bg-disabled") shadow mb-3"
+                     data-aos="fade-down" data-aos-easing="ease-out-cubic" data-aos-duration="500"
+                     style="border-radius:20px; border-width:2px;">
+                        <a href="@Url.Action("Index", "CMS")" class="text-decoration-none">
+                            <div class="card-body d-flex align-items-center text-dark">
+                            <img src="~/assets/drawer-line-icon-vector.jpg" style="width:100px; height:100px; margin-right:15px;">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">Cable Management System</h6>
+                                    <p class="mb-0">Streamline cable borrowing, returning, and inventory tracking.</p>
+                                </div>
+                            </div>
+                        </a>
+                </div>
+            </div>
+    
+    </div>
+</div>
+
+<style nonce="@nonce">
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden !important; /* Non-scrollable total */
+    }
+    
+    .bg-disabled {
+        background-color: #d3d3d3;
+    }
+
+    .card-tag {
+        transition: transform 0.4s ease-out;
+    }
+
+    .card-tag:not(.disabled-wrapper):hover {
+        transform: translateY(-3px);
+        cursor: pointer;
+    }
+
+    .disabled-wrapper {
+        cursor: not-allowed !important;
+    }
+
+    .disabled-wrapper a {
+        pointer-events: none;
+    }
+</style>

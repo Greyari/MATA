@@ -1,0 +1,254 @@
+﻿@model P1F_TPM360_HUB.Models.LoginModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Http
+@using System.Security.Claims
+
+@{
+    string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string name = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
+    string level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
+    int is_registered = 1;
+    if (level == null)
+    {
+        is_registered = 0;
+    }
+
+    Layout = null;
+    var nonce = Context.Items["CspNonce"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPM360 Hub</title>
+
+    <link rel="icon" type="image/x-icon" href="~/images/icon/seicongreenwstroke.svg">
+    <!-- AdminLTE V3 -->
+    <link href="~/Content/adminlte.min.css" rel="stylesheet" />
+    <link href="~/lib/adminlte/plugins/fontawesome-free/css/all.css" rel="stylesheet" />
+    <link href="~/lib/adminlte/plugins/fontawesome-free/css/fontawesome.css" rel="stylesheet" />
+    <link href="~/lib/adminlte/plugins/fontawesome-free/css/solid.css" rel="stylesheet" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+    <link href="~/lib/adminlte/dist/css/adminlte.min.css" rel="stylesheet" />
+    <link href="~/lib/adminlte/plugins/sweetalert2/sweetalert2.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/custom-fonts.css" />
+    <link rel="stylesheet" href="~/css/custom-fonts.css" />
+</head>
+
+<body class="bg">
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="container mask p-4 p-md-5 shadow-lg">
+            <div class="row align-items-center justify-content-center">
+                <!-- LEFT (branding) -->
+                <div class="col-12 col-lg-6 text-lg-start mb-4 mb-lg-0 custom-alignment">
+                    <div class="text-success mb-3">
+                        <!-- Icon besar di desktop, kecil di mobile -->
+                        @* <i class="fas fa-chart-area fa-5x"></i> *@
+                    </div>
+                    <div>
+                        <img src="~/assets/tpm-icon.png" alt="Logo" class="nav-logo">
+                    </div>
+
+                    @* <h8 class="text-muted">P1F Headcount</h8> *@
+                    <div class="mt-4">
+                        <p class="text-muted small">version 1.0</p>
+                    </div>
+                </div>
+
+                <!-- RIGHT (login box) -->
+                <div class="col-12 col-lg-6">
+                    <div class="p-3 p-md-4 text-lg-start">
+                        <div class="custom-alignment text-lg-start">
+                            <h4>Welcome,</h4>
+                            <h4>Please Login</h4>
+                        </div>
+                        @if (TempData["MessageSSO"] != null) // <-- CHANGE THIS LINE
+                        {
+                            <div class="mt-3">
+                                <div class="alert alert-danger text-center small">
+                                    @Html.Raw(TempData["MessageSSO"]) @* Use Html.Raw() to render the <br> tag *@@* You don't have access,<br />Please contact admin for support. *@
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-between mt-2">
+                                <button class="btn btn-info btn-flat rounded flex-fill ms-1 me-1 py-2 mr-1" onclick="login()">
+                                    <i class="fas fa-sign-in-alt"></i> Login with SESA
+                                </button>
+
+                                <a href="@Url.Action("Login", "Home")"
+                                   class="btn btn-success btn-flat rounded flex-fill me-1 py-2"
+                                   type="submit" name="submit">
+                                    <img src="~/assets/logos.png"
+                                         alt="SSO Login Icon"
+                                         class="iconse"
+                                         style="width: 20px; vertical-align: middle; margin-right: 1px;">
+                                    SSO Login
+                                </a>
+
+
+                            </div>
+
+                        }
+
+                        @if (ViewData["Message"] != null)
+                        {
+                            <div class="mt-3">
+                                <div class="alert alert-danger text-center small">
+                                    You don't have access,<br />
+                                    Please contact admin for support.
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="row mt-4 pt-3 border-top">
+                <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start">
+                    <div class="text-success mb-2 mb-md-0">
+                        <ul class="list-unstyled mb-0 small">
+                            <li>&copy;2025 - P1F Digital Transformation</li>
+                            <li>Schneider Electric Philippines</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <img src="~/assets/logo.png"
+                             class="d-inline-block align-text-top img-fluid"
+                             style="max-width: 120px;" alt="Schneider Electric Logo">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modal_login" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-md">
+                <div class="modal-content border-0 rounded-4 shadow-sm">
+                    <div class="modal-body p-4 text-center">
+                        <!-- Judul -->
+                        <i class="fas fa-sign-in-alt"></i> Login with SESA
+
+                        <!-- Form Input -->
+                        <form id="form_add" method="post" action="@Url.Action("LoginManual", "Home")">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3 text-start">
+                                <label class="form-label">SESA ID</label>
+                                @Html.TextBoxFor(model => model.sesa_id, new { @class = "form-control", placeholder = "SESA ID", autocomplete = "on" })
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label class="form-label">Password</label>
+                                @Html.PasswordFor(model => model.password, new { @class = "form-control", placeholder = "Password", autocomplete = "off" })
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-secondary flex-fill mr-2" data-dismiss="modal">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-success flex-fill">
+                                    Submit <i class="fa fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    <script src="~/lib/adminlte/plugins/sweetalert2/sweetalert2.min.js"></script>
+    <script>
+        function login() {
+            $("div#modal_login").modal("show");
+        }
+
+        // File: .cshtml (di dalam tag <script>)
+
+        $("form#form_add").off("submit").on("submit", function (e) {
+            e.preventDefault();
+
+            const form = $(this);
+            const formData = form.serialize();
+
+            $.ajax({
+                url: form.attr("action"),
+                type: "POST",
+                data: formData,
+                success: function (response) {
+                    if (response.success) {
+                        // Jika sukses, redirect ke URL yang diberikan
+                        window.location.href = response.redirectUrl;
+                    } else {
+                        // Jika gagal, tampilkan pesan error dari server
+                        Swal.fire("Failed!", response.message, "error");
+                    }
+                },
+                error: function () {
+                    Swal.fire("Error!", "Something went wrong. Please check connection.", "error");
+                }
+            });
+        });    </script>
+
+    <style>
+        .nav-logo {
+            width: 60%;
+            height: auto;
+        }
+
+        .bg {
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), /* lapisan gelap */
+            url('@Url.Content("~/images/background/maintenance.jpg")') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .mask {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .btn-success {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+            .btn-success:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+        /* .custom-alignment {
+            text-align: center;
+        } */
+
+        .nav-logo {
+            width: 60%;
+            height: auto;
+        }
+
+        @@media (max-width: 768px) {
+            .iconse {
+                width: 10%;
+            }
+
+
+            .custom-alignment {
+                text-align: center !important;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</body>
+</html>

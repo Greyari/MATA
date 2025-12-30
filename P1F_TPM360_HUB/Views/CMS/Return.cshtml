@@ -1,0 +1,389 @@
+﻿@{
+    ViewData["Title"] = "Cable Return Wizard";
+}
+
+<style>
+    /* --- STYLE BAWAAN --- */
+    .stepper-wrapper {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 40px;
+        position: relative;
+        padding: 0 50px;
+    }
+
+    .stepper-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+    }
+
+        .stepper-item::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: -50%;
+            width: 100%;
+            height: 2px;
+            background-color: #e0e0e0;
+            z-index: 1;
+        }
+
+        .stepper-item:first-child::before {
+            content: none;
+        }
+
+    .step-counter {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        margin-bottom: 6px;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 5;
+    }
+
+    .step-name {
+        font-size: 0.9rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .stepper-item.active .step-counter {
+        background-color: #dbeafe;
+        color: #1e40af;
+        border: 2px solid #1e40af;
+    }
+
+    .stepper-item.active .step-name {
+        color: #1e40af;
+        font-weight: bold;
+    }
+
+    .stepper-item.completed .step-counter {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .stepper-item.completed::before {
+        background-color: #10b981;
+    }
+
+    .stepper-item.completed .step-name {
+        color: #065f46;
+    }
+
+    .wizard-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        padding: 40px;
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: center;
+        min-height: 350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .scanner-input {
+        font-size: 1.5rem;
+        text-align: center;
+        letter-spacing: 2px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        width: 100%;
+        margin-top: 20px;
+        transition: border-color 0.3s;
+    }
+
+        .scanner-input:focus {
+            border-color: #3dcd58;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(61, 205, 88, 0.1);
+        }
+
+    .helper-text {
+        color: #888;
+        font-size: 0.9rem;
+        margin-top: 10px;
+        font-style: italic;
+    }
+
+    .hidden-step {
+        display: none;
+    }
+
+    .scan-icon-anim {
+        font-size: 4rem;
+        color: #3dcd58;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.1);
+            opacity: 0.7;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="container pt-5 pb-5">
+
+    <div class="stepper-wrapper">
+        <div class="stepper-item active" id="indicator-1">
+            <div class="step-counter">1</div>
+            <div class="step-name">Scan Cable</div>
+        </div>
+        <div class="stepper-item" id="indicator-2">
+            <div class="step-counter">2</div>
+            <div class="step-name">Scan Location</div>
+        </div>
+        <div class="stepper-item" id="indicator-3">
+            <div class="step-counter">3</div>
+            <div class="step-name">Finish</div>
+        </div>
+    </div>
+
+    <div class="wizard-card">
+
+        <div id="step-1-content">
+            <i class="fas fa-barcode scan-icon-anim"></i>
+            <h3>Step 1: Scan Cable QR</h3>
+            <p class="text-muted">Please scan the QR code attached to the cable using your scanner.</p>
+
+            <input type="text" id="inputCable" class="scanner-input" placeholder="Scan Cable ID..." autofocus autocomplete="off">
+            <p class="helper-text"><i class="fas fa-keyboard"></i> Waiting for scanner input...</p>
+        </div>
+
+        <div id="step-2-content" class="hidden-step">
+            <i class="fas fa-map-marker-alt scan-icon-anim text-primary"></i>
+            <h3>Step 2: Scan Location</h3>
+            <p class="text-muted">Scan the QR code of the Drawer/Cabinet location.</p>
+
+            <div class="alert alert-success py-2 mb-4" style="font-size: 0.9rem;">
+                <strong>Selected Cable:</strong> <span id="displayCableId">---</span>
+            </div>
+
+            <input type="text" id="inputLocation" class="scanner-input" placeholder="Scan Location Code..." autocomplete="off">
+            <p class="helper-text"><i class="fas fa-keyboard"></i> Waiting for scanner input...</p>
+
+            <button class="btn btn-secondary btn-sm mt-3" onclick="prevStep(1)">Back</button>
+        </div>
+
+        <div id="step-3-content" class="hidden-step">
+            <div class="text-center">
+                <i class="fas fa-check-circle text-success" style="font-size: 5rem; margin-bottom: 20px;"></i>
+                <h2 class="text-success">Return Success!</h2>
+                <p>The cable has been successfully returned.</p>
+
+                <div class="card bg-light border-0 p-3 mt-3 mb-4 text-left d-inline-block" style="min-width: 300px;">
+                    <div><strong>Cable ID:</strong> <span id="summaryCable"></span></div>
+                    <div><strong>Location:</strong> <span id="summaryLoc"></span></div>
+                    <div><strong>Time:</strong> <span id="summaryTime"></span></div>
+                </div>
+
+                <div>
+                    <button class="btn btn-primary" onclick="resetProcess()">Return Another Cable</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variabel global
+        var currentCableQR = "";
+        var currentCableId = "";
+        var targetLocationDisplay = "";
+
+        $(document).ready(function() {
+            $('#inputCable').focus();
+
+            // --- KEYBOARD EVENT LISTENERS ---
+
+            $('#inputCable').on('keypress', function(e) {
+                if(e.which == 13) {
+                    var code = $(this).val().trim();
+                    validateCable(code);
+                }
+            });
+
+            $('#inputLocation').on('keypress', function(e) {
+                if(e.which == 13) {
+                    var code = $(this).val().trim();
+                    validateLocation(code);
+                }
+            });
+        });
+
+        // --- LOGIC FUNCTIONS ---
+
+        function validateCable(cableCode) {
+            if(cableCode !== "") {
+                Swal.fire({title: 'Checking Cable...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+
+                $.ajax({
+                    url: "@Url.Action("CheckCableForReturn")",
+                    type: 'GET',
+                    data: { qr_code: cableCode },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            currentCableQR = cableCode;
+                            currentCableId = response.cableId;
+                            targetLocationDisplay = response.line + " - " + response.location;
+
+                            $('#displayCableId').text(currentCableId);
+
+                            goToStep(2);
+                        } else {
+                            Swal.fire({
+                                icon: "error", 
+                                title: "Cannot Return", 
+                                text: response.message,
+                                timer: 2000
+                            });
+                            $('#inputCable').val('');
+                        }
+                    },
+                    error: function() {
+                        Swal.close();
+                        // Swal.fire("Error", "Connection failed", "error");
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Connection failed",
+                            timer: 2000
+                        });
+                    }
+                });
+            } else {
+                Swal.fire({ 
+                    icon: "warning", 
+                    title: "Oops...", 
+                    text: "Please scan a valid cable code!", 
+                    timer: 2000 
+                });
+            }
+        }
+
+        function validateLocation(locCode) {
+            if(locCode !== "") {
+                Swal.fire({title: 'Verifying Location...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+
+                $.ajax({
+                    url: "@Url.Action("ProcessReturn")",
+                    type: 'POST',
+                    data: {
+                        cable_qr: currentCableQR,
+                        location_qr: locCode
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            $('#summaryCable').text(response.summaryCableId);
+                            $('#summaryLoc').text(response.summaryLocation);
+                            $('#summaryTime').text(new Date().toLocaleString());
+
+                            goToStep(3);
+                        } else {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Validation Failed",
+                                text: response.message,
+                                timer: 2000
+                            });
+                            $('#inputLocation').val('');
+                        }
+                    },
+                    error: function() {
+                        Swal.close();
+                        // Swal.fire("Error", "Server Error", "error");
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Server Error",
+                            timer: 2000
+                        });
+                    }
+                });
+            } else {
+                Swal.fire({ 
+                    icon: "warning", 
+                    title: "Oops...", 
+                    text: "Please scan a valid location code!", 
+                    timer: 2000 
+                });
+            }
+        }
+
+        // --- NAVIGASI ---
+        function goToStep(stepNumber) {
+            $('#step-1-content, #step-2-content, #step-3-content').hide();
+            $(`#step-${stepNumber}-content`).fadeIn();
+            updateStepperVisuals(stepNumber);
+
+            // Fokus otomatis input field untuk scanner fisik
+            if(stepNumber === 1) {
+                setTimeout(() => $('#inputCable').val('').focus(), 100);
+            } else if (stepNumber === 2) {
+                setTimeout(() => $('#inputLocation').val('').focus(), 100);
+            }
+        }
+
+        function prevStep(stepNumber) {
+            goToStep(stepNumber);
+        }
+
+        function resetProcess() {
+            $('#inputCable').val('');
+            $('#inputLocation').val('');
+            $('#displayCableId').text('---');
+            currentCableQR = "";
+            currentCableId = "";
+            targetLocationDisplay = "";
+
+            goToStep(1);
+        }
+
+        function updateStepperVisuals(currentStep) {
+            $('.stepper-item').removeClass('active completed');
+            for (let i = 1; i <= 3; i++) {
+                let $el = $(`#indicator-${i}`);
+                if (i < currentStep) {
+                    $el.addClass('completed');
+                } else if (i === currentStep) {
+                    if (i === 3) {
+                        $el.addClass('completed');
+                    } else {
+                        $el.addClass('active');
+                    }
+                }
+            }
+        }
+    </script>
+}

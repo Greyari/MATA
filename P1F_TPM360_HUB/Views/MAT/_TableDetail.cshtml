@@ -1,0 +1,89 @@
+﻿@using Microsoft.AspNetCore.Http
+@model List<dynamic>
+@inject IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
+@{
+    string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string user_level = User.FindFirst("p1f_tpm360_hub_level")?.Value;
+    var userLevels = user_level?.Split(';') ?? new string[0];
+}
+@foreach (var item in Model)
+{
+    <tr>
+        <td>@item.finding_date</td>
+        <td>@item.facility</td>
+        <td>@item.line_no</td>
+        <td>@item.station_id</td>
+        @{
+            string tagClass = @item.tag_id switch
+            {
+                "White" => "badge-light",
+                "Green" => "badge-success",
+                "Red" => "badge-danger",
+                "Yellow" => "badge-warning",
+                _ => "badge-secondary"
+            };
+        }
+        <td class="text-center align-middle">
+            <span class="badge @tagClass" style="font-size: 100%;">
+                @item.tag_dept
+            </span>
+        </td>
+        <td> @(string.IsNullOrWhiteSpace(item.operators) ? "-" : item.operators)</td>
+        <td class="text-center align-middle">@item.findings</td>
+        <td class="text-center align-middle">
+            @{
+                string defaultImagePath = Url.Content("~/assets/notavailable.png");
+                string imageUploadPath = Url.Content("~/upload/img/abn/");
+        
+            string findingSrc = string.IsNullOrEmpty(item.picture_finding)
+                ? defaultImagePath
+            : imageUploadPath + item.picture_finding;
+        
+            string actionSrc = string.IsNullOrEmpty(item.picture_after)
+                ? defaultImagePath
+            : imageUploadPath + item.picture_after;
+        
+                string cleanedFindings = item.findings.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+                string cleanedCorrective = item.corrective.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+
+            }
+        
+            <div class="card-overlap-container"
+                 style="cursor: pointer"
+                 onclick="zoomAllImage('@item.picture_after', '@item.picture_finding', '@cleanedFindings', '@cleanedCorrective')">
+                <img class="img-top"
+                     src="@actionSrc"
+                     height="100" width="100"
+                     onerror="this.onerror=null; this.src='@defaultImagePath';" />
+        
+                <img class="img-bottom"
+                     src="@findingSrc"
+                     height="100" width="100"
+                     onerror="this.onerror=null; this.src='@defaultImagePath';" />
+            </div>
+        </td>
+        <td class="align-middle text-center">
+            @if (!string.IsNullOrEmpty(item.attachment_file))
+            {
+                <button class="btn btn-primary mb-1 mt-1" style="width: 3rem;" onclick="viewPdf('@item.attachment_file')"><i class="fas fa-file-pdf"></i></button>
+            }
+        </td>
+        @{
+            string statusClass = @item.status_dynamic switch
+            {
+                "Waiting Action Owner" => "badge-warning",
+                "Waiting Validation" => "badge-info",
+                "Done" => "badge-secondary",
+                _ => "badge-secondary"
+            };
+        }
+        <td class="text-center align-middle">
+            <span class="badge @statusClass" style="font-size: 100%;">
+                @item.status_dynamic
+            </span>
+        </td>
+        <td>@item.name_owner</td>
+        <td>@item.name_validator</td>
+    </tr>
+}

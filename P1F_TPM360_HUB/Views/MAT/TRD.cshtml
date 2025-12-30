@@ -1,0 +1,133 @@
+﻿@* Three.js libraries *@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-12 mt-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h1 style="color: #009530"><i class="nav-icon fas fa-exclamation-triangle"></i> <strong>Machine Abnormality</strong></h1>
+                        </div>
+                        <div id="three-d-container" style="height: 800px; width: 100%; border: 1px solid #ccc;">
+                            @* The 3D model will be rendered inside this div *@
+                        </div>
+                        <div id="spinner_loading" class="text-center mt-2" style="display: none">
+                            <i class="fas fa-spinner fa-spin fa-lg" style="font-size:30pt;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get the container element
+    const container = document.getElementById('three-d-container');
+
+    // 1. Scene Setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0); // Light grey background
+
+    // 2. Camera Setup
+    const camera = new THREE.PerspectiveCamera(
+        75, // Field of view
+        container.clientWidth / container.clientHeight, // Aspect ratio
+        0.1, // Near clipping plane
+        1000 // Far clipping plane
+    );
+    camera.position.set(2, 2, 5); // Position the camera
+
+    // 3. Renderer Setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    // Handle window resizing
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // 4. OrbitControls Setup
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // For a smoother, more realistic feel
+    controls.dampingFactor = 0.05;
+    controls.screenSpacePanning = false;
+    controls.minDistance = 1;
+    controls.maxDistance = 10;
+    controls.target.set(0, 0, 0); // Center the controls target
+
+    // 5. Lighting
+    // Ambient Light (soft light from all directions)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    // Directional Light (simulates sunlight)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(5, 5, 5).normalize();
+    scene.add(directionalLight);
+
+    // 6. GLTF Loader to load trd.glb
+    const loader = new THREE.GLTFLoader();
+    const modelPath = '@Url.Content("~/trd.glb")'; // Path in wwwroot
+
+    // Show loading spinner
+    document.getElementById('spinner_loading').style.display = 'block';
+
+    loader.load(
+        modelPath,
+        function (gltf) {
+            // Success
+            const model = gltf.scene;
+            scene.add(model);
+
+            // Optional: Center the model and adjust camera
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.sub(center); // Center the model
+
+            // Adjust the camera's view to frame the model
+            // Not strictly necessary, but helpful for initial view
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            cameraZ *= 1.5; // Add some padding
+            camera.position.z = cameraZ;
+            camera.position.y = maxDim / 4; // Lift the camera slightly
+            controls.update(); // Update controls with new camera position
+
+            // Hide loading spinner
+            document.getElementById('spinner_loading').style.display = 'none';
+        },
+        function (xhr) {
+            // Progress
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        function (error) {
+            // Error
+            console.error('An error happened loading the GLB model:', error);
+            document.getElementById('spinner_loading').style.display = 'none'; // Ensure spinner hides on error
+            container.innerHTML = '<p class="text-danger text-center mt-5">Failed to load 3D model.</p>';
+        }
+    );
+
+    // 7. Animation Loop
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Update controls (essential for smooth damping)
+        controls.update();
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+    animate();
+</script>

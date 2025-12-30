@@ -1,0 +1,197 @@
+﻿@using Microsoft.AspNetCore.Http
+@model List<P1F_TPM360_HUB.Models.ABNModel>
+@inject IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
+@{
+    string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+}
+
+    @foreach (ABNModel item in Model)
+    {
+        <tr>
+            <td class="text-center align-middle">@item.order_id</td>
+            <td class="text-center align-middle">@item.date_find</td>
+            <td class="text-center align-middle">@item.facility</td>
+            <td class="text-center align-middle">@item.line</td>
+            <td class="text-center align-middle">@item.station_id</td>
+            @{
+                string tagClass = @item.tag_id switch
+                {
+                    "White" => "badge-light",
+                    "Green" => "badge-success",
+                    "Red" => "badge-danger",
+                    "Yellow" => "badge-warning",
+                    _ => "badge-secondary"
+                };
+            }
+            <td class="text-center align-middle">
+                <span class="badge @tagClass" style="font-size: 100%;">
+                        @item.tpm_tag
+                </span>
+            </td>
+            @* <td class="text-center align-middle">@item.operator_sesa</td> *@
+            <td class="text-center align-middle">
+                @(string.IsNullOrWhiteSpace(item.operator_sesa) ? "-" : item.operator_sesa)
+            </td>
+            <td class="text-center align-middle">@item.findings</td>
+            @* <td class="text-center align-middle">
+            <div class="card-overlap-container" style="cursor: pointer" onclick="zoomAllImage('@item.image', '@item.picture', '@item.findings', '@item.corrective')">
+                    @if (!string.IsNullOrEmpty(item.image))
+                    {
+                    <img class="img-top" src="@Url.Content("~/upload/img/abn/")@item.image" height="100" width="100" onerror="this.onerror=null; this.src='@Url.Content("~/assets/notavailable.png")';" />
+                    }
+
+                    @if (!string.IsNullOrEmpty(item.picture))
+                    {
+                    <img class="img-bottom" src="@Url.Content("~/upload/img/abn/")@item.picture" height="100" width="100" onerror="this.onerror=null; this.src='@Url.Content("~/assets/notavailable.png")';" />
+                    }
+                </div>
+            </td> *@
+            <td class="text-center align-middle">
+                @{
+                    string defaultImagePath = Url.Content("~/assets/notavailable.png");
+                    string imageUploadPath = Url.Content("~/upload/img/abn/");
+
+                    string findingSrc = string.IsNullOrEmpty(item.picture)
+                    ? defaultImagePath
+                    : imageUploadPath + item.picture;
+
+                    string actionSrc = string.IsNullOrEmpty(item.image)
+                    ? defaultImagePath
+                    : imageUploadPath + item.image;
+
+                    string cleanedFindings = item.findings.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+                    string cleanedCorrective = item.corrective.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+                }
+
+                <div class="card-overlap-container"
+                     style="cursor: pointer"
+                     onclick="zoomAllImage('@item.image', '@item.picture', '@cleanedFindings', '@cleanedCorrective')">
+                    <img class="img-top"
+                         src="@actionSrc"
+                         height="100" width="100"
+                         onerror="this.onerror=null; this.src='@defaultImagePath';" />
+
+                    <img class="img-bottom"
+                         src="@findingSrc"
+                         height="100" width="100"
+                         onerror="this.onerror=null; this.src='@defaultImagePath';" />
+                </div>
+            </td>
+            <td class="align-middle text-center">
+                @if (!string.IsNullOrEmpty(item.attachment_file))
+                {
+                <button class="btn btn-primary mb-1 mt-1" style="width: 3rem;" onclick="viewPdf('@item.attachment_file')"><i class="fas fa-file-pdf"></i></button>
+                }
+            </td>
+            @{
+                string statusClass = @item.status_dynamic switch
+                {
+                    "Waiting Action Owner" => "badge-warning",
+                    "Waiting Validation" => "badge-info",
+                    "Done" => "badge-secondary",
+                    _ => "badge-secondary"
+                };
+            }
+            <td class="text-center align-middle">
+                <span class="badge @statusClass" style="font-size: 100%;">
+                    @item.status_dynamic
+                </span>
+            </td>
+            <td class="text-center align-middle">@item.name_owner</td>
+            <td class="text-center align-middle">@item.name_validator</td>
+            <td class="text-center align-middle">
+                @if (item.requestor_sesa == sesa_id)
+                {
+                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                } 
+                else if (item.owner_sesa == sesa_id) 
+                {
+                    @if (item.status_request == "0")
+                    {
+                        <button class="btn btn-warning" onclick="actionOwner('@item.order_id')"><span class="fa fa-edit"></span></button>
+                    }
+                    else if (item.status_request == "4")
+                    {
+                        <button class="btn btn-warning" onclick="actionOwner2('@item.order_id')"><span class="fa fa-edit"></span></button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                    }
+                }
+                else if (item.validator_sesa == sesa_id)
+                {
+                    @if (item.status_request == "1")
+                    {
+                        <button class="btn btn-warning" onclick="actionValidator('@item.order_id')"><span class="fa fa-edit"></span></button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                    }
+                }
+                else if (item.assigned_sesa == sesa_id)
+                {
+                    @if (item.status_request == "3")
+                    {
+                        <button class="btn btn-warning" onclick="actionAssigned('@item.order_id')"><span class="fa fa-edit"></span></button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                    }
+                }
+                else
+                {
+                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                }
+            </td>
+        @* <td class="text-center align-middle">
+
+            @{
+                var currentSesaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                bool isWaitingValidation = item.status_request == "1";
+                bool isDone = item.status_request == "2";
+                bool isRequestor = item.requestor_sesa == currentSesaId;
+                bool isValidator = item.validator_sesa == currentSesaId;
+                bool isClarify = item.status_request == "4";
+                bool canEditSelfFixedWaiting = isWaitingValidation && isRequestor;
+
+                bool canEditClarify = isClarify && isRequestor;
+            }
+
+            @if (canEditSelfFixedWaiting || canEditClarify)
+            {
+                <button class="btn btn-warning btn-sm" onclick="actionDetailABN('@item.order_id')">
+                    <span class="fa fa-edit"></span>
+                </button>
+            }
+            else if (isWaitingValidation && isValidator)
+            {
+                <button class="btn btn-warning" onclick="actionValidator('@item.order_id')">
+                    <span class="fa fa-edit"></span>
+                </button>
+            }
+            else if (item.status_request == "0" && item.owner_sesa == currentSesaId)
+            {
+                <button class="btn btn-warning" onclick="actionOwner('@item.order_id')">
+                    <span class="fa fa-edit"></span>
+                </button>
+            }
+            else if (item.status_request == "3" && item.assigned_sesa == currentSesaId)
+            {
+                <button class="btn btn-warning" onclick="actionAssigned('@item.order_id')">
+                    <span class="fa fa-edit"></span>
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-secondary btn-sm" onclick="actionDetailABN('@item.order_id')">
+                    <span class="fa fa-eye"></span>
+                </button>
+            }
+        </td> *@
+    </tr>
+}

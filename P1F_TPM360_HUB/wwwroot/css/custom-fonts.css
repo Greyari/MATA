@@ -1,0 +1,83 @@
+﻿/* ======================================
+   Custom Fonts (TTF Version) for AdminLTE + DataTables
+   Safe: only changes font, does not break layout
+   ====================================== */
+
+/* 1️⃣ Register fonts */
+@font-face {
+    font-family: 'ARLRDBD';
+    src: url('../fonts/ARLRDBD.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'ARIALROUNDEDMT';
+    src: url('../fonts/ARIALROUNDEDMT.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'ARIALROUNDEDMTLIGHT';
+    src: url('../fonts/ARIALROUNDEDMTLIGHT.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'ARIALROUNDEDMTEXTRABOLD';
+    src: url('../fonts/ARIALROUNDEDMTEXTRABOLD.ttf') format('truetype');
+    font-weight: 800;
+    font-style: normal;
+}
+
+/* 2️⃣ Override AdminLTE root font variable */
+:root {
+    --font-family-sans-serif: 'ARIALROUNDEDMT', 'ARIALROUNDEDMTLIGHT', 'ARLRDBD', 'ARIALROUNDEDMTEXTRABOLD', Arial, sans-serif;
+    --font-family-base: var(--font-family-sans-serif);
+}
+
+/* 3️⃣ Apply font globally (safe) */
+body {
+    font-family: var(--font-family-sans-serif);
+}
+
+/* 4️⃣ Key AdminLTE UI elements */
+.nav-sidebar .nav-link,
+.main-header .nav-link,
+.brand-link,
+.card-title,
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-sans-serif);
+}
+
+/* 5️⃣ DataTables */
+table.dataTable,
+table.dataTable th {
+    font-family: var(--font-family-sans-serif);
+    font-size: 12px;
+    text-align: center !important;
+}
+table.dataTable,
+table.dataTable td {
+    font-family: var(--font-family-sans-serif);
+    font-size: 12px;
+    text-align: center !important;
+}
+
+/* 6️⃣ Optional: Font weight helpers */
+.fw-light {
+    font-family: 'ARIALROUNDEDMTLIGHT';
+    font-weight: 300;
+}
+
+.fw-bold, b, strong {
+    font-family: 'ARLRDBD';
+    font-weight: 700;
+}
+
+.fw-extrabold {
+    font-family: 'ARIALROUNDEDMTEXTRABOLD';
+    font-weight: 800;
+}

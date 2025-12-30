@@ -1,0 +1,1708 @@
+﻿@inject IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
+@{
+    // string org = User.FindFirst("p1f_headcount_organization")?.Value;
+    // string dept = User.FindFirst("p1f_headcount_department")?.Value;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/css/bootstrap-select.min.css">
+    <link href="~/lib/adminlte/dist/css/adminlte.css" rel="stylesheet">
+    <link href="~/lib/adminlte/plugins/sweetalert2/sweetalert2.css" rel="stylesheet">
+    <link href="~/lib/adminlte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css" rel="stylesheet">
+
+
+    <style>
+        .green-background {
+            background-color: #28a745 !important;
+        }
+
+       .modal-dialog {
+           max-width: 95% !important;
+       }
+
+        #hero1 {
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../images/background/bg05.jpg');
+            background-size: cover;
+            background-position: center top;
+            background-repeat: no-repeat;
+        }
+
+        .responsive {
+            height: 400px;
+            /*//overflow: scroll;*/
+        }
+
+        .card-overlap-container {
+            position: relative;
+            height: 100px;
+            width: 150px;
+            margin: 0 auto;
+        }
+
+            .card-overlap-container img {
+                position: absolute;
+                transition: transform 0.3s ease;
+            }
+
+        .img-bottom {
+            z-index: 1;
+            top: 0;
+            left: 0;
+        }
+
+        .img-top {
+            z-index: 2;
+            top: 5px;
+            left: 10px;
+        }
+
+        .card-overlap-container:hover .img-bottom {
+            transform: translateX(-5px) translateY(-5px);
+        }
+
+        .card-overlap-container:hover .img-top {
+            transform: translateX(5px) translateY(5px);
+        }
+
+    </style>
+
+</head>
+
+<body>
+    <div class="wrapper">
+        <section id="hero1" class="hero position-relative shadow-sm">
+            <div class="text-center">
+                <h3 class="text-white mb-0">
+                    <i class="fas fa-chart-line" style=" color: #28a745;"></i> <b>Operational Discipline Dashboard</b>
+                </h3>
+            </div>
+            <div class="hero-tagline position-absolute top-50 end-0 translate-middle-y pe-3 text-end">
+            </div>
+        </section>
+        <div class="content pt-3">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row align-center" style="margin-bottom:20px; margin-left:15px; margin-right:15px;">
+                                    <div class="col-lg-3">
+                                        <label for="range-options" style="font-size:10pt;font-weight:bold;">Time Range</label>
+                                        <div id="range-btn-group" class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check" name="range-options" id="range-daily" value="Daily" autocomplete="off">
+                                            <label class="btn btn-sm btn-outline-secondary" for="range-daily">Daily</label>
+
+                                            <input type="radio" class="btn-check" name="range-options" id="range-weekly" value="Weekly" autocomplete="off">
+                                            <label class="btn btn-sm btn-outline-secondary" for="range-weekly">Weekly</label>
+
+                                            <input type="radio" class="btn-check" name="range-options" id="range-monthly" value="Monthly" autocomplete="off">
+                                            <label class="btn btn-sm btn-outline-secondary" for="range-monthly">Monthly</label>
+
+                                            <input type="radio" class="btn-check" name="range-options" id="range-yearly" value="Yearly" autocomplete="off" checked>
+                                            <label class="btn btn-sm btn-outline-secondary" for="range-yearly">Yearly</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="select_filter_2" style="font-size:10pt;font-weight:bold;">Facility</label>
+                                        <select class="selectpicker form-control" id="select_filter_2" 
+                                            multiple 
+                                            data-live-search="true" 
+                                            data-actions-box="true">
+                                            @foreach (var item in ViewBag.Facilities)
+                                            {
+                                                <option value="@item.Code">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="select_filter_3" style="font-size:10pt;font-weight:bold;">Line</label>
+                                        <select class="selectpicker form-control" id="select_filter_3" 
+                                            multiple 
+                                            data-live-search="true" 
+                                            data-actions-box="true">
+                                            @foreach (var item in ViewBag.Lines)
+                                            {
+                                                <option value="@item.Code">@item.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="select_filter_4" style="font-size:10pt;font-weight:bold;">Station ID</label>
+                                        <select class="selectpicker form-control" id="select_filter_4" 
+                                            multiple 
+                                            data-live-search="true" 
+                                            data-actions-box="true">
+                                            @foreach (var item in ViewBag.Stations)
+                                            {
+                                                <option value="@item.Code">@item.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="date_from" style="font-size:10pt;font-weight:bold;">Date From</label>
+                                        <input type="date" class="form-control form-control-sm" id="date_from" name="date_from">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="date_to" style="font-size:10pt;font-weight:bold;">Date To</label>
+                                        <input type="date" class="form-control form-control-sm" id="date_to" name="date_to">
+                                    </div>
+                                    <div class="col-md-2 align-center">
+                                        <button class="form-control form-control-sm" id="apply_filter" style="background-color: #28a745; color: white; margin-top:30px; padding-left:20px;">
+                                            <i class="fas fa-arrow-right"></i> Apply Filter
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Cavite Abnormalities Monitoring
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="abn_monitoring"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Total OPLs
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="total_opls"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                               % OPLs per site
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="opls_per_site"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Top 10 Sharp Eye in finding abnormalities
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="sharp_eye"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                TPM Tag category
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="tpm_tag"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Root Cause (Human Weakness)
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="rootcause"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                What will happen if it is left as it is
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="happen"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Seven Types of Abnormalities
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="abn_type"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header text-center bg-secondary" style="color: white; font-size:18px; font-weight:bold">
+                                                Top 10 Fixed by Self
+                                            </div>
+                                            <div class="card-body">
+                                                <div style="position: relative; height: 450px; width: 100%;">
+                                                    <canvas id="fixed_by_self"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header green-background">
+                    <h5 class="modal-title text-white" id="detailsModalTitle"></h5><h5 class="modal-title text-white ms-1" id="sub_title"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm table-striped" id="tbl_details_filter2">
+                        <thead style="position: sticky; top:0; z-index: 10;">
+                            <tr class="text-center sticky-header">
+                                <th class="green-background text-white">Date</th>
+                                <th class="green-background text-white">Facility</th>
+                                <th class="green-background text-white">Line/Cell No</th>
+                                <th class="green-background text-white">Station ID</th>
+                                <th class="green-background text-white">TPM Tag</th>
+                                <th class="green-background text-white">Operator Sesa</th>
+                                <th class="green-background text-white">Findings</th>
+                                <th class="green-background text-white">Picture</th>
+                                <th class="green-background text-white">Attachment</th>
+                                <th class="green-background text-white">Status</th>
+                                <th class="green-background text-white">Action Owner</th>
+                                <th class="green-background text-white">Validator</th>
+                        </thead>
+                        <tbody id="TableContainer">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="show_all_picture" class="modal fade" tabindex="-1" aria-labelledby="filelabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fa fa-info-circle"></i> <span>Picture</span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-3 text-center">
+                        <div class="col-6">
+                            <h5 class="text-bold mb-2">Before (Findings)</h5>
+                            <img id="img_before" style="width: 80%">
+                            <div class="form-group">
+                                <label style="font-size:10pt; font-weight:bold;">Finding Remark<span style="color: red; font-weight:bold;">*</span></label>
+                                <textarea class="form-control form-control-sm" id="remark_findings" maxlength="255" style="resize: vertical; min-height: 50px;" placeholder="no findings allowed."></textarea>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-bold mb-2">After (Action)</h5>
+                            <img id="img_after" style="width: 80%">
+                            <div class="form-group">
+                                <label style="font-size:10pt; font-weight:bold;">Countermeasure Remark<span style="color: red; font-weight:bold;">*</span></label>
+                                <textarea class="form-control form-control-sm" id="remark_countermeasure" maxlength="255" style="resize: vertical; min-height: 50px;" placeholder="no findings allowed."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view_pdf" class="modal fade" tabindex="-1" aria-labelledby="filelabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fa fa-info-circle"></i> <span>Attachment File</span></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-3 text-center">
+                        <iframe id="pdfViewer" src="" style="width: 100%; height: 700px; border: none;"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/js/bootstrap-select.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    @section Scripts {
+    <script>
+
+            Chart.register(ChartDataLabels);
+            var abnMonitoringChartInstance;
+            var totalOPLsChartInstance;
+            var oplsPerSiteChartInstance;
+            var sharpEyeChartInstance;
+            var TpmTagChartInstance;
+            var RootCauseChartInstance;
+            var HappenChartInstance;
+            var AbnTypeChartInstance;
+            var FixedSelfChartInstance;
+            var detailTableInstance;
+
+            $(document).ready(function() {
+                $('.selectpicker').selectpicker('selectAll');
+                $('#date_from').val('2025-01-01');
+                $('#date_to').val('2026-12-31');
+                setTimeout(function() {
+                    loadAllData();
+                }, 100);
+
+                $('#apply_filter').off('click').on('click', function () {
+                    loadAllData();
+                });
+            });
+
+            $(document).on('hidden.bs.modal', function (event) {
+                if ($('.modal:visible').length) {
+                    $('body').addClass('modal-open');
+                }
+            });
+
+            function loadAllData() {
+                getAbnMonitoring();
+                getTotalOPLs();
+                getOPLsPerSite();
+                getSharpEye();
+                getTPMTag();
+                getRootCause();
+                getHappen();
+                getAbnType();
+                getFixedSelf();
+            }
+
+            function getAbnMonitoring() {
+                // 1. Ambil Data Filter
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                // 2. Siapkan Canvas
+                const ctx = document.getElementById('abn_monitoring');
+
+                if (abnMonitoringChartInstance) {
+                    abnMonitoringChartInstance.destroy();
+                    abnMonitoringChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_FINDING_CLOSED", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+                        let dataClosed = [];
+
+                        // 3. Mapping Data dari Controller (Findings & Closed)
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.Period_Group);
+                                // Parse angka, jika null/kosong ganti jadi 0
+                                dataFindings.push(parseFloat(item.Findings) || 0);
+                                dataClosed.push(parseFloat(item.Closed) || 0);
+                            });
+                        }
+
+                        // 4. Konfigurasi 2 Bar Chart (Grouped)
+                        abnMonitoringChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        // TAMBAHKAN INI:
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    },
+                                    {
+                                        label: 'Closed', // Bar Hijau
+                                        data: dataClosed,
+                                        backgroundColor: '#28a745',
+                                        borderColor: '#28a745',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        // TAMBAHKAN INI:
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true, // Tampilkan legend agar tahu warna X = Facility apa
+                                        position: 'bottom', // Posisi legend (top, bottom, left, right)
+                                        labels: {
+                                            usePointStyle: true,
+                                            padding: 20
+                                        }
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: { 
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Findings vs Closed Status'
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    // 1. Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        // 2. Dapatkan index dari elemen yang diklik
+                                        const index = elements[0].index;
+
+                                        // 3. 'this' merujuk ke chart. Dapatkan label dari index tsb.
+                                        // 'label' akan berisi nama response, misal "Verbal Warning"
+                                        const label = abnMonitoringChartInstance.data.labels[index];
+
+                                        const datasetIndex = elements[0].datasetIndex;
+
+                                        const type = abnMonitoringChartInstance.data.datasets[datasetIndex].label;
+
+                                        // 4. Panggil fungsi Anda yang sudah ada
+                                        // Ini akan memicu actionDetailBehaviour("Verbal Warning")
+                                        actionDetailAbnMonitor(label, type);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getTotalOPLs() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('total_opls');
+
+                if (totalOPLsChartInstance) {
+                    totalOPLsChartInstance.destroy();
+                    totalOPLsChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_TOTAL_OPLs", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        let labels = [];
+                        let dataAccumulative = [];
+                        let dataClosed = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.Period_Group);
+                                dataAccumulative.push(item.Accumulative);
+                                dataClosed.push(item.Closed);
+                            });
+                        }
+
+                        // 1. HITUNG NILAI TERTINGGI UNTUK MENGATUR SKALA
+                        // Kita butuh nilai max dari accumulative untuk patokan
+                        let maxAccumulative = Math.max(...dataAccumulative, 0);
+                        // Jika data kosong, default ke 100 agar chart tidak error
+                        if(maxAccumulative === 0) maxAccumulative = 100;
+
+                        totalOPLsChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        type: 'line',
+                                        label: 'Cumulative Total',
+                                        data: dataAccumulative,
+                                        yAxisID: 'y',
+                                        borderColor: '#000000',
+                                        backgroundColor: '#000000',
+                                        borderWidth: 2,
+                                        tension: 0.1,
+                                        pointRadius: 0,
+                                        fill: false,
+                                        order: 0,
+                                        datalabels: { display: false }
+                                    },
+                                    {
+                                        type: 'bar',
+                                        label: 'Monthly Closed',
+                                        data: dataClosed,
+                                        yAxisID: 'y_bar',
+                                        backgroundColor: '#28a745',
+                                        borderColor: '#28a745',
+                                        borderWidth: 1,
+                                        barPercentage: 0.6,
+                                        order: 1,
+                                        datalabels: {
+                                            anchor: 'end',
+                                            align: 'top',
+                                            color: '#333',
+                                            formatter: (value) => value > 0 ? value : ''
+                                        }
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false,
+                                },
+                                scales: {
+                                    // --- SUMBU Y UTAMA (UNTUK LINE) ---
+                                    y: {
+                                        type: 'linear',
+                                        display: true,
+                                        position: 'left',
+                                        beginAtZero: true,
+                                        // Beri sedikit nafas di atas (10%)
+                                        max: maxAccumulative * 1.1,
+                                        grid: { drawBorder: false },
+                                        ticks: { stepSize: 20 }
+                                    },
+                                    // --- SUMBU Y KEDUA (UNTUK BAR) - RAHASIA JARAKNYA DISINI ---
+                                    y_bar: {
+                                        type: 'linear',
+                                        display: false, // Sembunyikan sumbu ini agar user tidak bingung
+                                        position: 'right',
+                                        beginAtZero: true,
+                                        // TRIK: Set Max sumbu Bar menjadi 2.5 KALI LIPAT dari Max Line.
+                                        // Ini memaksa batang barnya menjadi pendek (berada di bawah),
+                                        // sehingga tidak menabrak garis kumulatif.
+                                        max: maxAccumulative * 2.5,
+                                        grid: { display: false }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false,
+                                        position: 'bottom'
+                                    },
+                                    datalabels: {
+                                        color: '#333',
+                                        font: {
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: { display: false }
+                                },
+                                onClick: (event, elements) => {
+                                    // 1. Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        // 2. Dapatkan index dari elemen yang diklik
+                                        const index = elements[0].index;
+
+                                        // 3. 'this' merujuk ke chart. Dapatkan label dari index tsb.
+                                        // 'label' akan berisi nama response, misal "Verbal Warning"
+                                        const label = totalOPLsChartInstance.data.labels[index];
+
+                                        // 4. Panggil fungsi Anda yang sudah ada
+                                        // Ini akan memicu actionDetailBehaviour("Verbal Warning")
+                                        actionDetailTotalOPLs(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getOPLsPerSite() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('opls_per_site');
+
+                if (oplsPerSiteChartInstance) {
+                    oplsPerSiteChartInstance.destroy();
+                    oplsPerSiteChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_OPLS_PER_SITE", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+
+                        // Siapkan array warna agar setiap potongan doughnut berbeda warna
+                        // Anda bisa menambah/mengganti kode warna hex di sini
+                        let backgroundColors = [
+                            '#dc3545', '#0d6efd', '#198754', '#ffc107', '#0dcaf0',
+                            '#6610f2', '#fd7e14', '#20c997', '#e83e8c', '#6f42c1'
+                        ];
+
+                        let dynamicColors = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach((item, index) => {
+                                labels.push(item.Facility);
+                                dataFindings.push(parseFloat(item.Closed) || 0);
+
+                                // Ambil warna dari array, gunakan modulus (%) agar warna berulang jika data > jumlah warna
+                                dynamicColors.push(backgroundColors[index % backgroundColors.length]);
+                            });
+                        }
+
+                        oplsPerSiteChartInstance = new Chart(ctx, {
+                            type: 'doughnut', // UBAH TIPE DI SINI
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings',
+                                        data: dataFindings,
+                                        backgroundColor: dynamicColors, // Gunakan array warna
+                                        borderColor: '#ffffff', // Border putih agar pemisah antar slice terlihat jelas
+                                        borderWidth: 2,
+                                        hoverOffset: 4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                // scales dihapus karena doughnut chart tidak butuh sumbu X/Y
+                                plugins: {
+                                    legend: {
+                                        display: true, // Tampilkan legend agar tahu warna X = Facility apa
+                                        position: 'bottom', // Posisi legend (top, bottom, left, right)
+                                        labels: {
+                                            usePointStyle: true,
+                                            padding: 20
+                                        }
+                                    },
+                                    datalabels: {
+                                        color: '#fff', // Warna text angka menjadi putih agar kontras
+                                        anchor: 'center', // Posisi angka di tengah slice
+                                        align: 'center',
+                                        formatter: (value) => value > 0 ? value : '',
+                                        font: {
+                                            weight: 'bold',
+                                            size: 18
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                let value = context.raw;
+                                                // Menghitung persentase (opsional, bagus untuk doughnut)
+                                                let total = context.chart._metasets[context.datasetIndex].total;
+                                                let percentage = Math.round((value / total) * 100) + '%';
+                                                return label + value + ' (' + percentage + ')';
+                                            }
+                                        }
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = oplsPerSiteChartInstance.data.labels[index];
+
+                                        actionDetailOPLsPerSite(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getSharpEye() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('sharp_eye');
+
+                if (sharpEyeChartInstance) {
+                    sharpEyeChartInstance.destroy();
+                    sharpEyeChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_SHARP_EYE", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+                        let dataClosed = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.FindingName);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        sharpEyeChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: { 
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                        //text: 'Findings vs Closed Status'
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = sharpEyeChartInstance.data.labels[index];
+
+                                        actionDetailSharpEye(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+            
+            function getTPMTag() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('tpm_tag');
+
+                if (TpmTagChartInstance) {
+                    TpmTagChartInstance.destroy();
+                    TpmTagChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_TPM_TAG", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+                        let dataClosed = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.TagId);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        TpmTagChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: { 
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = TpmTagChartInstance.data.labels[index];
+
+                                        actionDetailTpmTag(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getRootCause() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('rootcause');
+
+                if (RootCauseChartInstance) {
+                    RootCauseChartInstance.destroy();
+                    RootCauseChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_ROOTCAUSE", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.AbnRootCause);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        RootCauseChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: { 
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = RootCauseChartInstance.data.labels[index];
+
+                                        actionDetailRootCause(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+            
+            function getHappen() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('happen');
+
+                if (HappenChartInstance) {
+                    HappenChartInstance.destroy();
+                    HappenChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_HAPPEN", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+                        let dataClosed = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.AbnHappen);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        HappenChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: {
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = HappenChartInstance.data.labels[index];
+
+                                        actionDetailHappen(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getAbnType() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('abn_type');
+
+                if (AbnTypeChartInstance) {
+                    AbnTypeChartInstance.destroy();
+                    AbnTypeChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_ABN_TYPE", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.AbnType);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        AbnTypeChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: {
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = AbnTypeChartInstance.data.labels[index];
+
+                                        actionDetailAbnType(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function getFixedSelf() {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+                var range = $('input[name="range-options"]:checked').val();
+
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                const ctx = document.getElementById('fixed_by_self');
+
+                if (FixedSelfChartInstance) {
+                    FixedSelfChartInstance.destroy();
+                    FixedSelfChartInstance = null;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: "@Url.Action("GET_FIXED_BY_SELF", "MAT")",
+                    data: {
+                        facility: facility,
+                        line: line,
+                        station: station,
+                        date_from: date_from,
+                        date_to: date_to,
+                        range: range
+                    },
+                    success: function(data) {
+                        console.log("tadaaa")
+                        let labels = [];
+                        let dataFindings = [];
+                        let dataClosed = [];
+
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                labels.push(item.FindingName);
+                                dataFindings.push(parseFloat(item.BarChart) || 0);
+                            });
+                        }
+
+                        FixedSelfChartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'Findings', // Bar Merah
+                                        data: dataFindings,
+                                        backgroundColor: '#dc3545',
+                                        borderColor: '#dc3545',
+                                        borderWidth: 1,
+                                        barPercentage: 0.7,
+                                        categoryPercentage: 0.8,
+                                        minBarLength: 5 // Bar akan memiliki panjang minimal 5 pixel
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {  },
+                                    y: { beginAtZero: true, grace: '10%' }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false, // Wajib true agar user bisa membedakan warna
+                                        position: 'top'
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan angka jika > 0
+                                        color: '#333',
+                                        font: {
+                                            weight: 'bold',
+                                            size: 15
+                                        }
+                                    },
+                                    title: {
+                                        display: false
+                                    }
+                                },
+                                onClick: (event, elements) => {
+                                    //Pastikan pengguna mengklik sebuah elemen (bukan ruang kosong)
+                                    if (elements.length > 0) {
+
+                                        const index = elements[0].index;
+
+                                        const label = FixedSelfChartInstance.data.labels[index];
+
+                                        actionDetailFixedSelf(label);
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            }
+
+            function actionDetailAbnMonitor(v_a_l_u_e, type) {
+                $('#detailsModalTitle').text('Cavite Abnormalities Monitoring');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_FINDING_CLOSED", "MAT")';
+                getDetail2Param(v_a_l_u_e, type, controlTarget);
+            }
+            function actionDetailTotalOPLs(v_a_l_u_e) {
+                $('#detailsModalTitle').text('Total OPLs');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_OPLS", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailOPLsPerSite(v_a_l_u_e) {
+                $('#detailsModalTitle').text('OPLs per site');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_OPLS_PER_SITE", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailSharpEye(v_a_l_u_e) {
+                $('#detailsModalTitle').text('Top 10 Sharp Eye in finding abnormalities');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_SHARP_EYE", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailTpmTag(v_a_l_u_e) {
+                $('#detailsModalTitle').text('TPM Tag category');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_TPM_TAG", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailRootCause(v_a_l_u_e) {
+                $('#detailsModalTitle').text('RootCause');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_ROOTCAUSE", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailHappen(v_a_l_u_e) {
+                $('#detailsModalTitle').text('What will happen if it is left as it is');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_HAPPEN", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailAbnType(v_a_l_u_e) {
+                $('#detailsModalTitle').text('Seven Types of Abnormalities');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_ABN_TYPE", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+            function actionDetailFixedSelf(v_a_l_u_e) {
+                $('#detailsModalTitle').text('Top 10 Fixed by Self');
+                $('#detailModal').modal('show');
+                var controlTarget = '@Url.Action("GET_DETAIL_FIXED_BY_SELF", "MAT")';
+                getDetail1Param(v_a_l_u_e, controlTarget);
+            }
+
+            function zoomAllImage(image, picture, findings, corrective) {
+                var alt_img = '@Url.Content("~/assets/notavailable.png")';
+                var basePath = '@Url.Content("~/upload/img/abn/")';
+                $("#show_all_picture").modal("show");
+                $("#img_before").attr("src", basePath + picture);
+                $("#img_after").attr("src", basePath + image);
+                $("#img_before").attr("onerror", `this.onerror=null; this.src='${alt_img}';`);
+                $("#img_after").attr("onerror", `this.onerror=null; this.src='${alt_img}';`);
+                $('#remark_findings').val(findings);
+                $('#remark_countermeasure').val(corrective);
+            }
+            function viewPdf(attachment_file) {
+                var basePath = '@Url.Content("~/upload/img/abn/pdf/")';
+                $("#view_pdf").modal("show");
+                $("#pdfViewer").attr("src", basePath + attachment_file);
+            }
+
+            function getDetail1Param(v_a_l_u_e, controlTarget) {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+
+                var range = $('input[name="range-options"]:checked').val();
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                $('#TableContainer').hide();
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: controlTarget,
+                    data: {facility: facility, line:line, station:station, date_from: date_from, date_to: date_to, range: range, value: v_a_l_u_e},
+                    success: function (result) {
+                        $('#sub_title').text('(' + v_a_l_u_e + ')');
+                        // 1. Hancurkan DataTables lama jika ada
+                        if (detailTableInstance) {
+                            detailTableInstance.destroy();
+                        }
+
+                        // 2. Masukkan HTML baru ke <tbody>
+                        $('#TableContainer').html(result);
+                        $('#TableContainer').show();
+
+                        // 3. Inisialisasi DataTables baru
+                        detailTableInstance = $('#tbl_details_filter2').DataTable({
+                            responsive: true,
+                            autoWidth: false,
+                            searching: true,
+                            paging: true,
+                            ordering: true,
+                            info: true,
+                            order: [[1, 'asc']] // Urutkan berdasarkan kolom kedua (SESA ID)
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Gagal memuat partial view:", status, error);
+                        $('#TableContainer').html('<div class="alert alert-danger">Error loading data. Please try again.</div>');
+                        $('#TableContainer').show();
+                    },
+                    complete: function() {
+                        //$('#spinner_loading').hide();
+                    }
+                });
+            }
+
+            function getDetail2Param(v_a_l_u_e, type, controlTarget) {
+                var facilityVal = $('#select_filter_2').val() || [];
+                var lineVal = $('#select_filter_3').val() || [];
+                var stationVal = $('#select_filter_4').val() || [];
+
+                var range = $('input[name="range-options"]:checked').val();
+                var facility = facilityVal.join(',');
+                var line = lineVal.join(',');
+                var station = stationVal.join(',');
+                var date_from = $('#date_from').val();
+                var date_to = $('#date_to').val();
+
+                $('#TableContainer').hide();
+
+                $.ajax({
+                    type: "POST",
+                    cache: false,
+                    url: controlTarget,
+                    data: {facility: facility, line:line, station:station, date_from: date_from, date_to: date_to, range: range, value: v_a_l_u_e, type: type},
+                    success: function (result) {
+                        $('#sub_title').text('(' + v_a_l_u_e + ' & ' + type + ')');
+                        if (detailTableInstance) {
+                            detailTableInstance.destroy();
+                        }
+
+                        $('#TableContainer').html(result);
+                        $('#TableContainer').show();
+
+                        detailTableInstance = $('#tbl_details_filter2').DataTable({
+                            responsive: true,
+                            autoWidth: false,
+                            searching: true,
+                            paging: true,
+                            ordering: true,
+                            info: true,
+                            order: [[1, 'asc']]
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Gagal memuat partial view:", status, error);
+                        $('#TableContainer').html('<div class="alert alert-danger">Error loading data. Please try again.</div>');
+                        $('#TableContainer').show();
+                    },
+                    complete: function() {
+                        //$('#spinner_loading').hide();
+                    }
+                });
+            }
+
+    </script>
+    }
+</body>
+</html>
