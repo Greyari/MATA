@@ -1,4 +1,5 @@
 ﻿@{
+    Layout = "~/Views/Shared/_LayoutCMS.cshtml";
     ViewData["Title"] = "Cable Return Wizard";
 }
 
@@ -156,233 +157,264 @@
             <div class="step-counter">1</div>
             <div class="step-name">Scan Cable</div>
         </div>
-        <div class="stepper-item" id="indicator-2">
-            <div class="step-counter">2</div>
-            <div class="step-name">Scan Location</div>
-        </div>
         <div class="stepper-item" id="indicator-3">
-            <div class="step-counter">3</div>
+            <div class="step-counter">2</div>
             <div class="step-name">Finish</div>
         </div>
     </div>
 
     <div class="wizard-card">
-
         <div id="step-1-content">
             <i class="fas fa-barcode scan-icon-anim"></i>
             <h3>Step 1: Scan Cable QR</h3>
-            <p class="text-muted">Please scan the QR code attached to the cable using your scanner.</p>
+            <p class="text-muted">Scan the QR code on the cable to return it. You can scan multiple cables.</p>
 
             <input type="text" id="inputCable" class="scanner-input" placeholder="Scan Cable ID..." autofocus autocomplete="off">
-            <p class="helper-text"><i class="fas fa-keyboard"></i> Waiting for scanner input...</p>
-        </div>
 
-        <div id="step-2-content" class="hidden-step">
-            <i class="fas fa-map-marker-alt scan-icon-anim text-primary"></i>
-            <h3>Step 2: Scan Location</h3>
-            <p class="text-muted">Scan the QR code of the Drawer/Cabinet location.</p>
-
-            <div class="alert alert-success py-2 mb-4" style="font-size: 0.9rem;">
-                <strong>Selected Cable:</strong> <span id="displayCableId">---</span>
+            <div class="mt-4 text-left">
+                <label class="small font-weight-bold text-success">
+                    <i class="fas fa-history"></i> Recent Activity @*<span class="text-muted">(Last 10 Minutes)</span>: *@
+                </label>
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px;">
+                    <table class="table table-sm table-striped mb-0" id="tempReturnTable">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Cable ID</th>
+                                <th>Location</th>
+                                <th>Time</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tempReturnBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <input type="text" id="inputLocation" class="scanner-input" placeholder="Scan Location Code..." autocomplete="off">
-            <p class="helper-text"><i class="fas fa-keyboard"></i> Waiting for scanner input...</p>
-
-            <button class="btn btn-secondary btn-sm mt-3" onclick="prevStep(1)">Back</button>
+            <div class="mt-4">
+                <button id="btnFinishReturn" class="btn btn-success btn-lg btn-block" onclick="finishReturnTransaction()" disabled>
+                    Finish <i class="fas fa-check-circle ml-2"></i>
+                </button>
+            </div>
         </div>
 
         <div id="step-3-content" class="hidden-step">
             <div class="text-center">
                 <i class="fas fa-check-circle text-success" style="font-size: 5rem; margin-bottom: 20px;"></i>
                 <h2 class="text-success">Return Success!</h2>
-                <p>The cable has been successfully returned.</p>
+                <p>All scanned cables have been successfully returned to their respective locations.</p>
 
-                <div class="card bg-light border-0 p-3 mt-3 mb-4 text-left d-inline-block" style="min-width: 300px;">
-                    <div><strong>Cable ID:</strong> <span id="summaryCable"></span></div>
-                    <div><strong>Location:</strong> <span id="summaryLoc"></span></div>
-                    <div><strong>Time:</strong> <span id="summaryTime"></span></div>
+                <div class="card bg-light border-0 p-3 mt-3 mb-4 text-left d-inline-block" style="min-width: 350px;">
+                    <div><strong>Total Cables:</strong> <span id="summaryCount">0</span></div>
+                    <div id="summaryListArea" class="mt-2 small">
+                        <strong>Details:</strong>
+                        <ul id="summaryDetails" class="mb-0"></ul>
+                    </div>
+                    <div class="mt-2"><strong>Time:</strong> <span id="summaryTime"></span></div>
                 </div>
 
                 <div>
-                    <button class="btn btn-primary" onclick="resetProcess()">Return Another Cable</button>
+                    <button class="btn btn-primary" onclick="resetProcess()">Return More Cables</button>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // Variabel global
-        var currentCableQR = "";
-        var currentCableId = "";
-        var targetLocationDisplay = "";
+        var returnedItems = []; // Array untuk menampung data temporary
 
         $(document).ready(function() {
             $('#inputCable').focus();
-
-            // --- KEYBOARD EVENT LISTENERS ---
+            loadReturnHistory();
 
             $('#inputCable').on('keypress', function(e) {
                 if(e.which == 13) {
                     var code = $(this).val().trim();
-                    validateCable(code);
-                }
-            });
-
-            $('#inputLocation').on('keypress', function(e) {
-                if(e.which == 13) {
-                    var code = $(this).val().trim();
-                    validateLocation(code);
+                    if(code !== "") {
+                        processDirectReturn(code);
+                    }
                 }
             });
         });
 
-        // --- LOGIC FUNCTIONS ---
+        function loadReturnHistory() {
+            $.ajax({
+                url: "@Url.Action("GetReturnHistory")",
+                type: "GET",
+                success: function(data) {
+                    var $tbody = $('#tempReturnBody');
+                    $tbody.empty();
+                    returnedItems = []; // Reset local list
 
-        function validateCable(cableCode) {
-            if(cableCode !== "") {
-                Swal.fire({title: 'Checking Cable...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-
-                $.ajax({
-                    url: "@Url.Action("CheckCableForReturn")",
-                    type: 'GET',
-                    data: { qr_code: cableCode },
-                    success: function(response) {
-                        Swal.close();
-                        if (response.success) {
-                            currentCableQR = cableCode;
-                            currentCableId = response.cableId;
-                            targetLocationDisplay = response.line + " - " + response.location;
-
-                            $('#displayCableId').text(currentCableId);
-
-                            goToStep(2);
-                        } else {
-                            Swal.fire({
-                                icon: "error", 
-                                title: "Cannot Return", 
-                                text: response.message,
-                                timer: 2000
-                            });
-                            $('#inputCable').val('');
-                        }
-                    },
-                    error: function() {
-                        Swal.close();
-                        // Swal.fire("Error", "Connection failed", "error");
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "Connection failed",
-                            timer: 2000
+                    if (data.length > 0) {
+                        $('#btnFinishReturn').prop('disabled', false);
+                        $.each(data, function(i, item) {
+                            var row = `<tr>
+                                <td class="font-weight-bold">${item.cable_id}</td>
+                                <td><span class="badge badge-info">${item.location}</span></td>
+                                <td class="text-muted small">${item.return_date}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteReturnItem('${item.order_id}', '${item.cable_id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
+                            $tbody.append(row);
+                            // Update array untuk summary di Step Terakhir
+                            returnedItems.push({ id: item.cable_id, loc: item.location, time: item.return_date, qr: item.cable_id });
                         });
+                    } else {
+                        $('#btnFinishReturn').prop('disabled', true);
+                        $tbody.append('<tr><td colspan="4" class="text-center text-muted small py-3">No cables scanned yet</td></tr>');
                     }
-                });
-            } else {
-                Swal.fire({ 
-                    icon: "warning", 
-                    title: "Oops...", 
-                    text: "Please scan a valid cable code!", 
-                    timer: 2000 
-                });
-            }
+                }
+            });
         }
 
-        function validateLocation(locCode) {
-            if(locCode !== "") {
-                Swal.fire({title: 'Verifying Location...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-
-                $.ajax({
-                    url: "@Url.Action("ProcessReturn")",
-                    type: 'POST',
-                    data: {
-                        cable_qr: currentCableQR,
-                        location_qr: locCode
-                    },
-                    success: function(response) {
-                        Swal.close();
-                        if (response.success) {
-                            $('#summaryCable').text(response.summaryCableId);
-                            $('#summaryLoc').text(response.summaryLocation);
-                            $('#summaryTime').text(new Date().toLocaleString());
-
-                            goToStep(3);
-                        } else {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Validation Failed",
-                                text: response.message,
-                                timer: 2000
-                            });
-                            $('#inputLocation').val('');
+        function deleteReturnItem(orderId, cableId) {
+            Swal.fire({
+                title: "Cancel Return?",
+                text: "Remove cable " + cableId + " from list?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, Remove!"
+            }).then((result) => {
+                if (result.value || result.isConfirmed) {
+                    $.ajax({
+                        url: "@Url.Action("DeleteReturnItem")",
+                        type: "POST",
+                        data: { order_id: orderId },
+                        success: function(response) {
+                            if (response.success) {
+                                loadReturnHistory();
+                                Swal.fire({ icon: 'success', title: 'Removed', timer: 1500, showConfirmButton: false });
+                            } else {
+                                Swal.fire("Error", response.message, "error");
+                            }
                         }
-                    },
-                    error: function() {
-                        Swal.close();
-                        // Swal.fire("Error", "Server Error", "error");
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "Server Error",
-                            timer: 2000
-                        });
-                    }
-                });
-            } else {
-                Swal.fire({ 
-                    icon: "warning", 
-                    title: "Oops...", 
-                    text: "Please scan a valid location code!", 
-                    timer: 2000 
-                });
-            }
+                    });
+                }
+            });
         }
 
-        // --- NAVIGASI ---
+                function processDirectReturn(cableCode, isConfirmed = false) {
+            if (!isConfirmed && returnedItems.some(x => x.qr === cableCode)) {
+                Swal.fire("Warning", "Cable already in the return list.", "warning");
+                $('#inputCable').val('').focus();
+                return;
+            }
+
+            let loadingTitle = isConfirmed ? 'Processing Return...' : 'Checking Cable...';
+            // Gunakan onOpen jika menggunakan SweetAlert versi lama
+            Swal.fire({
+                title: loadingTitle,
+                allowOutsideClick: false,
+                onOpen: () => Swal.showLoading()
+            });
+
+            $.ajax({
+                url: "@Url.Action("ProcessReturn")",
+                type: 'POST',
+                data: {
+                    cable_qr: cableCode,
+                    isConfirmed: isConfirmed
+                },
+                success: function(response) {
+                    // JANGAN panggil Swal.close() manual di sini jika ingin membuka modal konfirmasi
+                    if (response.success) {
+                        if (response.requiresConfirmation) {
+                            Swal.fire({
+                                title: "Confirm Return?",
+                                html: `Return: <b>${response.cableId}</b><br>To: <b>${response.location}</b>`,
+                                icon: "question",
+                                showCancelButton: true,
+                                confirmButtonColor: "#3dcd58",
+                                confirmButtonText: "Yes, Return it!"
+                            }).then((result) => {
+                                // Perbaikan: Mendukung result.value (Swal lama) dan result.isConfirmed (Swal baru)
+                                if (result.value || result.isConfirmed) {
+                                    // PEMANGGILAN KEDUA: Kirim true agar Controller mengeksekusi SP
+                                    processDirectReturn(cableCode, true);
+                                } else {
+                                    $('#inputCable').val('').focus();
+                                }
+                            });
+                        } else {
+                            // Jika sudah sukses (Setelah pemanggilan kedua)
+                            loadReturnHistory(); // PERBAIKAN: Tambahkan tanda kurung ()
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Cable ' + response.summaryCableId + ' returned',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                            $('#inputCable').val('').focus();
+                        }
+                    } else {
+                        Swal.fire({ icon: "error", title: "Failed", text: response.message });
+                        $('#inputCable').val('').focus();
+                    }
+                },
+                error: function() {
+                    Swal.fire({ icon: "error", title: "Error", text: "Connection failed" });
+                }
+            });
+        }
+
+        function addToTempReturnList(cableId, location, qrCode) {
+            var now = new Date().toLocaleTimeString();
+            if (returnedItems.length === 0) $('#tempReturnBody').empty();
+
+            returnedItems.push({ id: cableId, loc: location, time: now, qr: qrCode });
+
+            var row = `<tr>
+                <td class="font-weight-bold">${cableId}</td>
+                <td><span class="badge badge-info">${location}</span></td>
+                <td class="text-muted small">${now}</td>
+            </tr>`;
+
+            $('#tempReturnBody').prepend(row);
+            $('#btnFinishReturn').prop('disabled', false);
+        }
+
+        function finishReturnTransaction() {
+            $('#summaryCount').text(returnedItems.length);
+            $('#summaryTime').text(new Date().toLocaleString());
+
+            var listHtml = returnedItems.map(item => `<li><b>${item.id}</b> to ${item.loc}</li>`).join('');
+            $('#summaryDetails').html(listHtml);
+
+            goToStep(3);
+        }
+
         function goToStep(stepNumber) {
-            $('#step-1-content, #step-2-content, #step-3-content').hide();
+            $('#step-1-content, #step-3-content').hide();
             $(`#step-${stepNumber}-content`).fadeIn();
             updateStepperVisuals(stepNumber);
-
-            // Fokus otomatis input field untuk scanner fisik
-            if(stepNumber === 1) {
-                setTimeout(() => $('#inputCable').val('').focus(), 100);
-            } else if (stepNumber === 2) {
-                setTimeout(() => $('#inputLocation').val('').focus(), 100);
-            }
-        }
-
-        function prevStep(stepNumber) {
-            goToStep(stepNumber);
         }
 
         function resetProcess() {
+            returnedItems = [];
+            $('#tempReturnBody').html('<tr><td colspan="3" class="text-center text-muted small py-3">No cables scanned yet</td></tr>');
+            $('#btnFinishReturn').prop('disabled', true);
             $('#inputCable').val('');
-            $('#inputLocation').val('');
-            $('#displayCableId').text('---');
-            currentCableQR = "";
-            currentCableId = "";
-            targetLocationDisplay = "";
-
             goToStep(1);
+            setTimeout(() => $('#inputCable').focus(), 200);
         }
 
         function updateStepperVisuals(currentStep) {
-            $('.stepper-item').removeClass('active completed');
-            for (let i = 1; i <= 3; i++) {
-                let $el = $(`#indicator-${i}`);
-                if (i < currentStep) {
-                    $el.addClass('completed');
-                } else if (i === currentStep) {
-                    if (i === 3) {
-                        $el.addClass('completed');
-                    } else {
-                        $el.addClass('active');
-                    }
-                }
+            // Step 1: counter 1, Step 3: counter 2 (di visualisasi stepper Anda)
+            if (currentStep === 1) {
+                $('#indicator-1').addClass('active').removeClass('completed');
+                $('#indicator-3').removeClass('active completed');
+            } else {
+                $('#indicator-1').addClass('completed').removeClass('active');
+                $('#indicator-3').addClass('completed');
             }
         }
     </script>

@@ -1,6 +1,7 @@
 ﻿@inject IHttpContextAccessor HttpContextAccessor
 
 @{
+    Layout = "~/Views/Shared/_LayoutCMS.cshtml";
     ViewData["Title"] = "Multi Line Status AJAX";
     string user_level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
     string user_role = User.FindFirst("P1F_TPM360_HUB_role")?.Value;
@@ -9,6 +10,8 @@
     var userRoles = user_role?.Split(';') ?? new string[0];
 
 }
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
     /* --- MERGED STYLES --- */
@@ -368,6 +371,66 @@
         z-index: 1000;
     }
 
+    /* --- STYLE UNTUK LEGEND --- */
+    .status-legend {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        padding: 10px 15px;
+        background-color: var(--gray-100);
+        border-radius: 10px;
+        width: fit-content;
+        border: 1px solid var(--gray-300);
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+
+    .legend-color {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .color-full {
+        background-color: #dc3545; /* Merah Alert */
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.4);
+    }
+
+    .color-available {
+        background-color: #80807e; /* Warna Kayu Default */
+        border: 1px solid #e6e6e4;
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 50px !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--gray-300) !important;
+        display: flex;
+        align-items: center;
+    }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 48px !important;
+        }
+
+    .custom-card.empty-mode {
+        background-image: linear-gradient(rgba(169, 169, 169, 0.7), rgba(169, 169, 169, 0.7)), url('@Url.Content("~/assets/Rak.png")');
+        border-color: #6c757d;
+    }
+
+    .custom-card.available-mode {
+        background-image: linear-gradient(rgba(40, 167, 69, 0.7), rgba(40, 167, 69, 0.7)), url('@Url.Content("~/assets/Rak.png")');
+        border-color: #28a745;
+    }
+
 </style>
 
 <div class="container-fluid pt-3">
@@ -419,11 +482,27 @@
 
                 <div class="search-input-group">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="inputQrSearch" class="form-control" placeholder="Scan QR / Cable ID...">
+                    <select id="inputQrSearch" class="form-control">
+                        <option></option>
+                    </select>
                 </div>
             </div>
         </div>
 
+        <div class="status-legend shadow-sm">
+            <div class="legend-item">
+                <div class="legend-color color-full"></div>
+                <span>Full (No Space)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #28a745;"></div>
+                <span>Available Space</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #6c757d;"></div>
+                <span>Empty</span>
+            </div>
+        </div>
         <div id="lines-container">
             <div class="loading-container">
                 @* <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
@@ -513,63 +592,67 @@
 
 @section Scripts {
 <script>
-    $(document).ready(function () {
-        loadDrawerData();
-
-        // Event saat dropdown berubah
-        $('#ddlLine').change(function() {
+        $(document).ready(function () {
             loadDrawerData();
-            $('#inputQrSearch').val('');
-        });
 
-        $('#inputQrSearch').on('keypress', function (e) {
-            if (e.which == 13) { 
-                performQrSearch();
+            if ($('#inputQrSearch').hasClass("select2-hidden-accessible")) {
+                $('#inputQrSearch').select2('destroy');
             }
-        });
 
-        $('#inputQrSearch').on('input', function() {
-            if ($(this).val().trim() === "") {
+            $('#inputQrSearch').select2({
+                placeholder: "Search Cable ID / Unit Model...",
+                allowClear: true,
+                minimumInputLength: 2,
+                width: '100%',
+                ajax: {
+                    url: "@Url.Action("GetCableSearchSuggestions")",
+                    type: "GET",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { searchTerm: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data };
+                    },
+                    cache: true
+                }
+            });
+
+            $('#inputQrSearch').on('select2:select', function (e) {
+                performQrSearch(e.params.data.id);
+            });
+
+            $('#inputQrSearch').on('select2:unselect', function () {
                 $('.custom-card').removeClass('card-faded card-selected card-animate-pulse');
-            }
-        });
+            });
 
-        // Search Client Side (Table Modal)
-        $("#modalTableSearch").on("keyup", function() {
-            var value = $(this).val().toLowerCase();
-            $("#cableTable tbody tr").filter(function() {
-                if($(this).hasClass('level-row-header')) return;
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+            $('#ddlLine').change(function() {
+                loadDrawerData();
+                $('#inputQrSearch').val(null).trigger('change');
             });
         });
-    });
 
-    // --- 1. FUNGSI BARU: KHUSUS HIGHLIGHT KARTU ---
-    // Dipisahkan supaya bisa dipanggil setelah pindah line
     function highlightCard(targetLine, targetLocation) {
         var selector = `.custom-card[data-line='${targetLine}'][data-location='${targetLocation}']`;
         var $targetCardWrapper = $(selector).closest('.grid-item-wrapper');
         var $targetCardInner = $(selector);
         
         if ($targetCardWrapper.length > 0) {
-            // A. Scroll ke target
             $targetCardWrapper[0].scrollIntoView({
                 behavior: 'smooth',
                 block: 'center'
             });
 
-            // B. Efek Visual
-            $('.custom-card').addClass('card-faded'); // Pudarkan semua
+            $('.custom-card').addClass('card-faded');
             
             $targetCardInner.removeClass('card-faded');
-            $targetCardInner.addClass('card-selected card-animate-pulse'); // Highlight target
+            $targetCardInner.addClass('card-selected card-animate-pulse');
 
-            // C. Timer Stop Animasi
             setTimeout(function() {
                 $targetCardInner.removeClass('card-animate-pulse');
             }, 3000); 
         } else {
-            // Fallback jika anehnya masih tidak ketemu
             Swal.fire({
                 icon: "warning",
                 title: "Not Visible",
@@ -578,68 +661,78 @@
         }
     }
 
-    // --- 2. MODIFIKASI: PERFORM SEARCH DENGAN LOGIKA PINDAH LINE ---
-    function performQrSearch() {
-        var qrCode = $('#inputQrSearch').val().trim();
+        function performQrSearch(qrCode) {
+            $('.custom-card').removeClass('card-faded card-selected card-animate-pulse');
 
-        // Reset visual awal
-        $('.custom-card').removeClass('card-faded card-selected card-animate-pulse');
+            if (!qrCode) return;
 
-        if (!qrCode) return;
+            $.ajax({
+                url: "@Url.Action("SearchCableLocation")",
+                type: 'GET',
+                data: { qrCode: qrCode },
+                success: function (response) {
+                    if (response.success && response.data.length > 0) {
+                        var targets = response.data;
 
-        $.ajax({
-            url: "@Url.Action("SearchCableLocation")",
-            type: 'GET',
-            data: { qrCode: qrCode },
-            success: function (response) {
-                if (response.success) {
-                    var targetLine = response.line;        
-                    var targetLocation = response.location; 
+                        $('.custom-card').addClass('card-faded');
 
-                    // --- LOGIKA UTAMA DISINI ---
-                    
-                    // Cek apakah Line target ada di dalam Dropdown (User punya akses?)
-                    // Kita cari option yang value-nya sama dengan targetLine
-                    var isLineAccessible = $(`#ddlLine option[value='${targetLine}']`).length > 0;
+                        targets.forEach(function(item) {
+                            var selector = `.custom-card[data-line='${item.line}'][data-location='${item.location}']`;
+                            var $targetCard = $(selector);
 
-                    if (isLineAccessible) {
-                        var currentLine = $('#ddlLine').val();
+                            if ($targetCard.length > 0) {
+                                $targetCard.removeClass('card-faded');
+                                $targetCard.addClass('card-selected card-animate-pulse');
 
-                        if (currentLine !== targetLine) {
-                            // KASUS: Beda Line -> Pindah Line Dulu
-                            
-                            // 1. Ubah nilai dropdown
-                            $('#ddlLine').val(targetLine);
-
-                            // 2. Load data Line baru, lalu jalankan callback highlight setelah selesai
-                            loadDrawerData(function() {
-                                // Callback ini jalan SETELAH ajax loadDrawerData selesai & HTML tergambar
-                                highlightCard(targetLine, targetLocation);
-                            });
-
-                        } else {
-                            // KASUS: Line Sama -> Langsung Highlight
-                            highlightCard(targetLine, targetLocation);
-                        }
-                    } else {
-                        // KASUS: User tidak punya akses ke Line tersebut
-                        Swal.fire({
-                            icon: "error",
-                            title: "Access Denied",
-                            text: `Item found in Line ${targetLine}, but you do not have permission to view this line.`
+                                setTimeout(function() {
+                                    $targetCard.removeClass('card-animate-pulse');
+                                }, 3000);
+                            }
                         });
+
+                        var firstMatchSelector = `.custom-card[data-line='${targets[0].line}'][data-location='${targets[0].location}']`;
+                        var $firstMatch = $(firstMatchSelector);
+
+                        if ($firstMatch.length > 0) {
+                            $firstMatch[0].scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                        } else {
+                            handleTargetHighlight(targets[0].line, targets[0].location);
+                        }
+
+                    } else {
+                        Swal.fire({ icon: "warning", title: "Not Found", text: response.message });
                     }
-
-                } else {
-                    Swal.fire({ icon: "warning", title: "Not Found", text: response.message });
+                },
+                error: function() {
+                    Swal.fire({ icon: "error", title: "Error", text: "Failed to fetch search data." });
                 }
-            },
-            error: function () {
-                Swal.fire({ icon: "error", title: "Error", text: "Connection error." });
-            }
-        });
-    }
+            });
+        }
 
+    function handleTargetHighlight(targetLine, targetLocation) {
+        var isLineAccessible = $(`#ddlLine option[value='${targetLine}']`).length > 0;
+
+        if (isLineAccessible) {
+            var currentLine = $('#ddlLine').val();
+        
+            if (currentLine !== targetLine) {
+                $('#ddlLine').val(targetLine);
+            
+                loadDrawerData(function() {
+                    setTimeout(function() {
+                        highlightCard(targetLine, targetLocation);
+                    }, 300) ;
+                });
+            } else {
+                highlightCard(targetLine, targetLocation);
+            }
+        } else {
+            Swal.fire({ icon: "error", title: "Access Denied", text: "You don't have access to Line " + targetLine });
+        }
+    }
     function applyClientSideFilter() {
         var value = $("#searchInput").val() ? $("#searchInput").val().toLowerCase() : "";
         if (!value) {
@@ -651,7 +744,6 @@
         });
     }
 
-    // --- 3. MODIFIKASI: TAMBAHKAN PARAMETER CALLBACK (onComplete) ---
     function loadDrawerData(onComplete) {
         var selectedLine = $('#ddlLine').val(); 
 
@@ -678,13 +770,23 @@
                     var gridStyle = `grid-template-columns: repeat(${line.colNum}, 190px);`;
                     var itemsHtml = '';
                     $.each(line.items, function (i, item) {
-                        var alertClass = item.isAlert ? 'alert-mode' : '';
+                        var statusClass = '';
+
+                        // if (item.subLabel === "-") {
+                        if (item.subLabel === "-" || (item.subLabel && item.subLabel.startsWith("0/"))) {
+                            statusClass = 'empty-mode';
+                        } else if (item.isAlert) {
+                            statusClass = 'alert-mode';
+                        } else {
+                            statusClass = 'available-mode';
+                        }
+
                         var clickAction = `openDetailModal('${line.lineName}', '${item.label}', '${item.subLabel}')`;
 
                         itemsHtml += `
                             <div class="grid-item-wrapper">
-                                <div class="custom-card ${alertClass}"
-                                    data-line="${line.lineName}"
+                                <div class="custom-card ${statusClass}"
+                                     data-line="${line.lineName}"
                                      data-location="${item.label}"
                                      onclick="${clickAction}"
                                      title="View Details for ${item.label}">
@@ -708,15 +810,12 @@
                     container.append(lineHtml);
                 });
 
-                // Jangan kosongkan inputQrSearch jika ini dipanggil dari search (via callback)
                 if(!onComplete) {
                     $('#inputQrSearch').val('');
                 }
                 
                 applyClientSideFilter();
 
-                // --- JALANKAN CALLBACK JIKA ADA ---
-                // Ini penting: Memberi tahu pemanggil bahwa HTML sudah selesai dirender
                 if (onComplete && typeof onComplete === "function") {
                     onComplete();
                 }
@@ -786,10 +885,14 @@
                         if (cId !== '-' && cId !== 'Empty' && statusText !== 'UNAVAILABLE') {
                             if (statusText === "OUT") {
                                 actionHtml = `
-                                        <button class="btn btn-sm btn-outline-warning text-nowrap align-items-center" onclick="processReturnInDashboard('${cId}')" title="Return Item">
+                                    <button class="btn btn-sm btn-outline-warning text-nowrap" onclick="processReturnInDashboard('${cId}')" title="Return Item">
                                         <i class="fas fa-undo-alt"></i> Return
-                                    </button>
-                                `;
+                                    </button>`;
+                            } else if (statusText === "IN") {
+                                actionHtml = `
+                                    <button class="btn btn-sm btn-outline-primary text-nowrap" onclick="processBorrowInDashboard('${lineName}', '${locationName}')" title="Borrow Item">
+                                        <i class="fas fa-sign-out-alt"></i> Borrow
+                                    </button>`;
                             }
                         }
                         var actionCell = '';
@@ -819,45 +922,25 @@
         });
     }
 
-    // function processReturnInDashboard(cableId) {
-    //     var currentLine = $('#detailModal').data('line');
-    //     var currentLocation = $('#detailModal').data('location');
-    //     Swal.fire({
-    //         title: 'Return Cable?',
-    //         html: `Are you sure you want to return cable <b>${cableId}</b>?<br/>Status will change to <b>IN</b>.`,
-    //         icon: 'question',
-    //         showCancelButton: true,
-    //         confirmButtonColor: '#3085d6',
-    //         cancelButtonColor: '#d33',
-    //         confirmButtonText: 'Yes, Return it!'
-    //     }).then((result) => {
-    //         if (result.value) {
-    //             $.ajax({
-    //                 url: "@Url.Action("ReturnCable")",
-    //                 type: 'POST',
-    //                 data: { cableId: cableId },
-    //                 success: function (response) {
-    //                     if (response.success) {
-    //                         Swal.fire({
-    //                             icon: 'success',
-    //                             title: 'Returned!',
-    //                             text: 'Cable status has been updated to IN.',
-    //                             timer: 1500,
-    //                             showConfirmButton: false
-    //                         });
-    //                         loadDrawerData();
-    //                         openDetailModal(currentLine, currentLocation);
-    //                     } else {
-    //                         Swal.fire('Error', response.message, 'error');
-    //                     }
-    //                 },
-    //                 error: function () {
-    //                     Swal.fire('Error', 'Failed to connect to server.', 'error');
-    //                 }
-    //             });
-    //         }
-    //     });
-    // }
+    function processBorrowInDashboard(line, location) {
+        Swal.fire({
+            title: 'Borrow from this location?',
+            html: `You will be redirected to Borrow page for:<br><b>${line} - ${location}</b>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2E8B57',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, Go to Borrow'
+        }).then((result) => {
+            if (result.value) {
+                var url = '@Url.Action("Borrow", "CMS")' + 
+                          '?line=' + encodeURIComponent(line) + 
+                          '&location=' + encodeURIComponent(location);
+            
+                window.location.href = url;
+            }
+        });
+    }
     
     function processReturnInDashboard(cableId) {
         var currentLine = $('#detailModal').data('line');
@@ -872,8 +955,7 @@
             confirmButtonText: 'Yes, Return it!'
         }).then((result) => {
             if (result.value) {
-                // var url = '@Url.Action("Return", "Admin")' + '?cableId=' + encodeURIComponent(cableId);
-                var url = '@Url.Action("Return", "Admin")';
+                var url = '@Url.Action("Return", "CMS")';
                 window.location.href = url;
             }
         });

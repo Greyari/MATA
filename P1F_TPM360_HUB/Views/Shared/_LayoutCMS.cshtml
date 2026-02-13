@@ -126,28 +126,6 @@
             <div class="sidebar">
                 <nav class="mt-3">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-                        @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin") || userLevels.Contains("mat"))
-                        {
-                            <li class="nav-header">Machine Abnormality</li>
-                            @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin"))
-                            {
-                                <li class="nav-item">
-                                    <a href="@Url.Action("Dashboard", "MAT")" class="nav-link @Html.IsActive("MAT", "Dashboard")">
-                                        <i class="nav-icon fa fa-line-chart"></i>
-                                        <p>Dashboard</p>
-                                    </a>
-                                </li>
-                            }
-                            @if (userLevels.Contains("mat") || userLevels.Contains("superadmin") || userLevels.Contains("mat_admin"))
-                            {
-                                <li class="nav-item">
-                                    <a href="@Url.Action("Observation", "MAT")" class="nav-link @Html.IsActive("MAT", "Observation")">
-                                        <i class="nav-icon fa fa-users"></i>
-                                        <p>MATA</p>
-                                    </a>
-                                </li>
-                            }
-                        }
                         @if (userLevels.Contains("cm_admin") || userLevels.Contains("cm_user") || userLevels.Contains("superadmin"))
                         {
                             <li class="nav-header">Cable Management</li>

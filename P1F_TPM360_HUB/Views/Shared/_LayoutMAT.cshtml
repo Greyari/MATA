@@ -148,28 +148,6 @@
                                 </li>
                             }
                         }
-                        @if (userLevels.Contains("cm_admin") || userLevels.Contains("cm_user") || userLevels.Contains("superadmin"))
-                        {
-                            <li class="nav-header">Cable Management</li>
-                            <li class="nav-item">
-                                <a href="@Url.Action("Index", "CMS")" class="nav-link @Html.IsActive("CMS", "Index")">
-                                    <i class="nav-icon fa fa-layer-group"></i>
-                                    <p>Drawer</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="@Url.Action("Borrow", "CMS")" class="nav-link @Html.IsActive("CMS", "Borrow")">
-                                    <i class="nav-icon fa fa-arrow-circle-right"></i>
-                                    <p>Borrow</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="@Url.Action("Return", "CMS")" class="nav-link @Html.IsActive("Return", "CMS")">
-                                    <i class="nav-icon fa fa-arrow-circle-left"></i>
-                                    <p>Return</p>
-                                </a>
-                            </li>
-                        }
                         @if (userLevels.Contains("superadmin"))
                         {
 

@@ -50,7 +50,8 @@ namespace P1F_TPM360_HUB.Controllers
             }
             else if (userLevel.Contains("cm_admin") || userLevel.Contains("cm_user") || userLevel.Contains("superadmin"))
             {
-                ViewBag.GetLines = _db.GetLines(userSessionLines);
+                //ViewBag.GetLines = _db.GetLines(userSessionLines);
+                ViewBag.GetLines = _db.GetLine();
 
                 return View();
             }
@@ -62,20 +63,72 @@ namespace P1F_TPM360_HUB.Controllers
         public IActionResult Borrow()
         {
             string userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
+            if (string.IsNullOrEmpty(userLevel)) return RedirectToAction("Index", "Login");
 
-            if (string.IsNullOrEmpty(userLevel))
+            List<string> lineList = new List<string>();
+
+            using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
             {
-                return RedirectToAction("Index", "Login");
+                conn.Open();
+                string query = "SELECT DISTINCT line FROM mst_drawer ORDER BY line ASC";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            lineList.Add(reader["line"].ToString());
+                        }
+                    }
+                }
             }
-            else if (userLevel.Contains("cm_admin") || userLevel.Contains("cm_user") || userLevel.Contains("superadmin"))
-            {
-                return View();
-            }
-            else
-            {
-                return RedirectToAction("Index", "Login");
-            }
+
+            ViewBag.LineList = lineList;
+            return View();
         }
+
+        [HttpGet]
+        public IActionResult GetLocationsByLine(string line)
+        {
+            var locations = new List<object>();
+
+            using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+            {
+                conn.Open();
+
+                string query = @"
+            SELECT 
+                d.location, 
+                d.qr_code, 
+                (SELECT COUNT(*) FROM mst_cable c 
+                 WHERE c.line = d.line 
+                 AND c.location = d.location 
+                 AND c.status = 'IN') as available_qty
+            FROM mst_drawer d
+            WHERE d.line = @line
+            ORDER BY d.location ASC";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@line", line);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            locations.Add(new
+                            {
+                                location = reader["location"].ToString(),
+                                qr_code = reader["qr_code"].ToString(),
+                                available_qty = Convert.ToInt32(reader["available_qty"])
+                            });
+                        }
+                    }
+                }
+            }
+
+            return Json(locations);
+        }
+
         public IActionResult Return()
         {
             string userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
@@ -126,10 +179,10 @@ namespace P1F_TPM360_HUB.Controllers
         {
             string userSessionLines = User.FindFirst("P1F_TPM360_HUB_lines")?.Value;
 
-            if (line == "ALL")
-            {
-                line = userSessionLines;
-            }
+            //if (line == "ALL")
+            //{
+            //    line = userSessionLines;
+            //}
             var configs = new List<DrawerMapping>();
             var drawerDataDict = new Dictionary<string, DrawerDetail>(StringComparer.OrdinalIgnoreCase);
 
@@ -145,7 +198,7 @@ namespace P1F_TPM360_HUB.Controllers
                 // Cek jika parameter line ada isinya
                 if (!string.IsNullOrEmpty(line))
                 {
-                    queryConfig += " WHERE line IN (SELECT TRIM(value) FROM STRING_SPLIT(@line, ';')) ";
+                    queryConfig += " WHERE line = @line OR @line = 'ALL' ";
                 }
 
                 queryConfig += " ORDER BY line ASC";
@@ -181,7 +234,7 @@ namespace P1F_TPM360_HUB.Controllers
 
                 if (!string.IsNullOrEmpty(line))
                 {
-                    queryData += " WHERE line IN (SELECT TRIM(value) FROM STRING_SPLIT(@line, ';')) ";
+                    queryData += " WHERE line = @line OR @line = 'ALL' ";
                 }
 
                 using (SqlCommand cmd = new SqlCommand(queryData, conn))
@@ -217,7 +270,36 @@ namespace P1F_TPM360_HUB.Controllers
             }
 
             // --- STEP 3: MAPPING DAN LOGIC TAMPILAN (Tidak Berubah) ---
-            // Loop ini otomatis hanya akan memproses 1 Line saja karena variable 'configs' di Step 1 sudah difilter.
+            //var result = new List<LineDataViewModel>();
+
+            //foreach (var config in configs)
+            //{
+            //    var gridItems = new List<GridItemViewModel>();
+
+            //    var itemsInThisLine = drawerDataDict.Values
+            //        .Where(d => drawerDataDict.Any(x => x.Key.StartsWith(config.line + "_") && x.Value == d))
+            //        .ToList();
+
+            //    var sortedItems = itemsInThisLine.OrderBy(x => x.Location).ToList();
+
+            //    foreach (var itemData in sortedItems)
+            //    {
+            //        gridItems.Add(new GridItemViewModel
+            //        {
+            //            Label = itemData.Location,
+            //            SubLabel = $"{itemData.ActQty}/{itemData.MaxQty}",
+            //            IsAlert = (itemData.AvailableQty == 0)
+            //        });
+            //    }
+
+            //    result.Add(new LineDataViewModel
+            //    {
+            //        LineName = config.line,
+            //        ColNum = config.col_num > 0 ? config.col_num : 5,
+            //        Items = gridItems
+            //    });
+            //}
+
             var result = new List<LineDataViewModel>();
 
             foreach (var config in configs)
@@ -238,7 +320,6 @@ namespace P1F_TPM360_HUB.Controllers
                         else
                             finalLabel = $"{rowLabel}{colLabel}";
 
-                        // Key Pencarian
                         string searchKey = $"{config.line}_{finalLabel}";
 
                         string subLabelText = "-";
@@ -272,29 +353,187 @@ namespace P1F_TPM360_HUB.Controllers
         }
 
         [HttpGet]
+        public IActionResult GetBorrowHistory()
+        {
+            string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var history = new List<object>();
+
+            using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+            {
+                string query = @"SELECT t.order_id, t.cable_id, c.line, c.location, t.borrow_date  
+                         FROM tbl_cable_management t
+                         JOIN mst_cable c ON t.qr_code = c.qr_code
+                         WHERE t.borrow_sesa = @sesa AND t.status = 'OPEN'
+                         ORDER BY t.borrow_date DESC";
+
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@sesa", sesa_id);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            history.Add(new
+                            {
+                                order_id = reader["order_id"].ToString(),
+                                cable_id = reader["cable_id"].ToString(),
+                                location = reader["line"].ToString() + " - " + reader["location"].ToString(),
+                                borrow_date = Convert.ToDateTime(reader["borrow_date"]).ToString("dd-MM-yyyy HH:mm:ss")
+                            });
+                        }
+                    }
+                }
+            }
+            return Json(history);
+        }
+
+        [HttpGet]
+        public JsonResult GetCableSearchSuggestions(string searchTerm)
+        {
+            var results = new List<object>();
+            if (string.IsNullOrWhiteSpace(searchTerm)) return Json(results);
+
+            using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+            {
+                conn.Open();
+                string sql = @"
+            SELECT DISTINCT text FROM (
+                SELECT cable_id AS text FROM mst_cable WHERE cable_id LIKE @term
+                UNION
+                SELECT unit_model AS text FROM mst_cable WHERE unit_model LIKE @term
+            ) AS combined
+            ORDER BY text ASC";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@term", "%" + searchTerm + "%");
+                    using (SqlDataReader rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            results.Add(new
+                            {
+                                id = rdr["text"].ToString(),
+                                text = rdr["text"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return Json(results);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteBorrowItem(string order_id)
+        {
+            string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand("DELETE_BORROW", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@order_id", order_id);
+                        cmd.Parameters.AddWithValue("@sesa_id", sesa_id);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                            return Json(new { success = true });
+                        else
+                            return Json(new { success = false, message = "Data not found or already deleted." });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetReturnHistory()
+        {
+            string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var history = new List<object>();
+
+            using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+            {
+
+                string query = @"SELECT t.order_id, t.cable_id, c.line, c.location, t.return_date  
+                         FROM tbl_cable_management t
+                         JOIN mst_cable c ON t.qr_code = c.qr_code
+                         WHERE t.return_sesa = @sesa 
+                         AND t.status = 'CLOSED'
+                         ORDER BY t.return_date DESC";
+                //AND DATEDIFF(MINUTE, t.return_date, GETDATE()) <= 10
+
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@sesa", sesa_id);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            history.Add(new
+                            {
+                                order_id = reader["order_id"].ToString(),
+                                cable_id = reader["cable_id"].ToString(),
+                                location = reader["line"].ToString() + " - " + reader["location"].ToString(),
+                                return_date = Convert.ToDateTime(reader["return_date"]).ToString("dd-MM-yyyy HH:mm:ss")
+                            });
+                        }
+                    }
+                }
+            }
+            return Json(history);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteReturnItem(string order_id)
+        {
+            string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand("DELETE_RETURN", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@order_id", order_id);
+                        cmd.Parameters.AddWithValue("@sesa_id", sesa_id);
+                        cmd.ExecuteNonQuery();
+                        return Json(new { success = true });
+                    }
+                }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpGet]
         public IActionResult SearchCableLocation(string qrCode)
         {
             if (string.IsNullOrWhiteSpace(qrCode))
-            {
                 return Json(new { success = false, message = "Empty input" });
-            }
 
-            // Panggil method DAL yang baru dibuat
-            var locationData = _db.GetLocationByQr(qrCode);
+            // Ubah ke List
+            var results = _db.GetLocationsByQr(qrCode);
 
-            if (locationData != null)
+            if (results != null && results.Any())
             {
                 return Json(new
                 {
                     success = true,
-                    line = locationData.Line,
-                    location = locationData.Location
+                    isMultiple = results.Count > 1,
+                    data = results // Kirim semua daftar lokasi
                 });
             }
-            else
-            {
-                return Json(new { success = false, message = "Cable not found in database." });
-            }
+
+            return Json(new { success = false, message = "No items found for this Unit Model/ID." });
         }
 
         [HttpGet]
@@ -403,21 +642,17 @@ namespace P1F_TPM360_HUB.Controllers
 
         // --- STEP 2: SCAN CABLE, VALIDASI, & UPDATE ---
         [HttpPost]
-        public IActionResult ProcessBorrow(string cable_qr, string drawer_qr)
+        public IActionResult ProcessBorrow(string cable_qr, string drawer_qr, bool isConfirmed = false)
         {
             string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            string cableLine = "", cableLoc = "", cableStatus = "";
-            string dbCableId = ""; // Variabel untuk menampung Cable ID dari Database
+            string cableLine = "", cableLoc = "", cableStatus = "", dbCableId = "", cableDesc = "";
             string drawerLine = "", drawerLoc = "";
-            bool cableFound = false;
-            bool drawerFound = false;
+            bool cableFound = false, drawerFound = false;
 
             using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
             {
                 conn.Open();
 
-                // 1. AMBIL DATA DRAWER
                 string queryDrawer = "SELECT line, location FROM mst_drawer WHERE qr_code = @d_qr";
                 using (SqlCommand cmd = new SqlCommand(queryDrawer, conn))
                 {
@@ -432,12 +667,9 @@ namespace P1F_TPM360_HUB.Controllers
                         }
                     }
                 }
-
                 if (!drawerFound) return Json(new { success = false, message = "Original Location Invalid." });
 
-                // 2. AMBIL DATA CABLE (Tambahkan cable_id di SELECT)
-                string queryCable = "SELECT cable_id, line, location, status FROM mst_cable WHERE qr_code = @c_qr";
-
+                string queryCable = "SELECT cable_id, cable_description, line, location, status FROM mst_cable WHERE qr_code = @c_qr";
                 using (SqlCommand cmd = new SqlCommand(queryCable, conn))
                 {
                     cmd.Parameters.AddWithValue("@c_qr", cable_qr);
@@ -446,9 +678,8 @@ namespace P1F_TPM360_HUB.Controllers
                         if (reader.Read())
                         {
                             cableFound = true;
-                            // Simpan data ID asli dari database
                             dbCableId = reader["cable_id"]?.ToString();
-
+                            cableDesc = reader["cable_description"]?.ToString();
                             cableLine = reader["line"]?.ToString();
                             cableLoc = reader["location"]?.ToString();
                             cableStatus = reader["status"]?.ToString();
@@ -456,25 +687,25 @@ namespace P1F_TPM360_HUB.Controllers
                     }
                 }
 
-                if (!cableFound) return Json(new { success = false, message = "Cable QR not found in database." });
+                if (!cableFound) return Json(new { success = false, message = "Cable QR not found." });
 
-                // 3. VALIDASI MATCHING
                 if (cableLine != drawerLine || cableLoc != drawerLoc)
+                    return Json(new { success = false, message = $"Mismatch! Cable belongs to {cableLine}-{cableLoc}." });
+
+                if (cableStatus != "IN")
+                    return Json(new { success = false, message = $"Cable status is '{cableStatus}'." });
+
+                if (!isConfirmed)
                 {
                     return Json(new
                     {
-                        success = false,
-                        message = $"Mismatch! Cable belongs to {cableLine}-{cableLoc}, but you are at {drawerLine}-{drawerLoc}."
+                        success = true,
+                        requiresConfirmation = true,
+                        cableId = dbCableId,
+                        description = cableDesc
                     });
                 }
 
-                // 4. VALIDASI STATUS
-                if (cableStatus != "IN")
-                {
-                    return Json(new { success = false, message = $"Cable cannot be borrowed. Current status is '{cableStatus}'." });
-                }
-
-                // 5. UPDATE STATUS
                 string updateQuery = "BORROW_CABLE";
                 using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
                 {
@@ -484,24 +715,13 @@ namespace P1F_TPM360_HUB.Controllers
                     int rowsAffected = cmd.ExecuteNonQuery();
 
                     if (rowsAffected > 0)
-                    {
-                        // KIRIM 'dbCableId' KE JSON RESPONSE
-                        return Json(new
-                        {
-                            success = true,
-                            message = "Success borrowing cable.",
-                            realCableId = dbCableId // <--- Data ini yang akan di pakai di View
-                        });
-                    }
+                        return Json(new { success = true, realCableId = dbCableId });
                     else
-                    {
                         return Json(new { success = false, message = "Failed to update database." });
-                    }
                 }
             }
         }
-
-        //----- RETURN -----//
+        // --- RETURN ---
         // --- STEP 1: CEK KABEL (Harus Status OUT) ---
         [HttpGet]
         public IActionResult CheckCableForReturn(string qr_code)
@@ -549,20 +769,17 @@ namespace P1F_TPM360_HUB.Controllers
         // --- STEP 2: CEK LOKASI & UPDATE STATUS JADI IN ---
 
         [HttpPost]
-        public IActionResult ProcessReturn(string cable_qr, string location_qr)
+        public IActionResult ProcessReturn(string cable_qr, bool isConfirmed = false)
         {
             string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            string cableLine = "", cableLoc = "";
-            string drawerLine = "", drawerLoc = "";
-            string cableIdFromDb = "";
+            string cableLine = "", cableLoc = "", cableStatus = "", cableIdFromDb = "", cableDesc = "";
 
             using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
             {
                 conn.Open();
 
                 // 1. AMBIL DATA CABLE
-                string qCable = "SELECT cable_id, line, location FROM mst_cable WHERE qr_code = @c_qr";
+                string qCable = "SELECT cable_id, cable_description, line, location, status FROM mst_cable WHERE qr_code = @c_qr";
                 using (SqlCommand cmd = new SqlCommand(qCable, conn))
                 {
                     cmd.Parameters.AddWithValue("@c_qr", cable_qr);
@@ -570,58 +787,59 @@ namespace P1F_TPM360_HUB.Controllers
                     {
                         if (r.Read())
                         {
-                            cableIdFromDb = r["cable_id"].ToString(); // Ambil ID yang sebenarnya
+                            cableIdFromDb = r["cable_id"].ToString();
+                            cableDesc = r["cable_description"]?.ToString();
                             cableLine = r["line"].ToString();
                             cableLoc = r["location"].ToString();
+                            cableStatus = r["status"].ToString();
                         }
-                        else return Json(new { success = false, message = "Cable data error." });
+                        else return Json(new { success = false, message = "Cable QR not recognized!" });
                     }
                 }
 
-                // 2. AMBIL DATA DRAWER (Berdasarkan QR Location yang discan user)
-                string qDrawer = "SELECT line, location FROM mst_drawer WHERE qr_code = @d_qr";
-                using (SqlCommand cmd = new SqlCommand(qDrawer, conn))
+                // 2. VALIDASI STATUS
+                if (cableStatus == "IN")
                 {
-                    cmd.Parameters.AddWithValue("@d_qr", location_qr);
-                    using (SqlDataReader r = cmd.ExecuteReader())
-                    {
-                        if (r.Read())
-                        {
-                            drawerLine = r["line"].ToString();
-                            drawerLoc = r["location"].ToString();
-                        }
-                        else return Json(new { success = false, message = "Location QR not found!" });
-                    }
+                    return Json(new { success = false, message = "This cable is already marked as IN (Stocked)." });
                 }
 
-                // 3. VALIDASI: APAKAH INI RUMAHNYA?
-                if (cableLine != drawerLine || cableLoc != drawerLoc)
+                // 3. JIKA BELUM KONFIRMASI, KIRIM DATA UNTUK DITAMPILKAN DI ALERT
+                if (!isConfirmed)
                 {
                     return Json(new
                     {
-                        success = false,
-                        message = $"WRONG LOCATION! This cable belongs to {cableLine}-{cableLoc}, but you scanned {drawerLine}-{drawerLoc}."
+                        success = true,
+                        requiresConfirmation = true,
+                        cableId = cableIdFromDb,
+                        description = cableDesc,
+                        location = $"{cableLine} - {cableLoc}"
                     });
                 }
 
-                // 4. UPDATE STATUS MENJADI 'IN'
-                string update = "RETURN_CABLE";
-                using (SqlCommand cmd = new SqlCommand(update, conn))
+                // 4. EKSEKUSI UPDATE (Hanya jika isConfirmed = true)
+                try
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@return_sesa", sesa_id);
-                    cmd.Parameters.AddWithValue("@c_qr", cable_qr);
-                    cmd.ExecuteNonQuery();
-                }
+                    string update = "RETURN_CABLE";
+                    using (SqlCommand cmd = new SqlCommand(update, conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@return_sesa", sesa_id);
+                        cmd.Parameters.AddWithValue("@c_qr", cable_qr);
+                        cmd.ExecuteNonQuery();
+                    }
 
-                // Kirim data untuk Step 3
-                return Json(new
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Return Successful",
+                        summaryCableId = cableIdFromDb,
+                        summaryLocation = $"{cableLine} - {cableLoc}"
+                    });
+                }
+                catch (Exception ex)
                 {
-                    success = true,
-                    message = "Return Successful",
-                    summaryCableId = cableIdFromDb, // ID Kabel yang sebenarnya
-                    summaryLocation = $"{drawerLine} - {drawerLoc}" // Lokasi yang discan
-                });
+                    return Json(new { success = false, message = "Database Error: " + ex.Message });
+                }
             }
         }
 

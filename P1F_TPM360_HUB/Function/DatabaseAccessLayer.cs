@@ -104,6 +104,36 @@ namespace P1F_TPM360_HUB.Function
             }
             return lineList;
         }
+        public List<DropdownModel> GetLine()
+        {
+            var lineList = new List<DropdownModel>();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            {
+                con.Open();
+
+                string query = @"
+            SELECT DISTINCT line 
+            FROM mst_drawer_mapping
+        ";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            lineList.Add(new DropdownModel
+                            {
+                                Code = reader["line"].ToString(),
+                            });
+                        }
+                    }
+                }
+            }
+            return lineList;
+        }
         
         public List<DropdownModel> GetLocations(string line)
         {
@@ -231,35 +261,36 @@ namespace P1F_TPM360_HUB.Function
             return list;
         }
 
-        public CableLocationResult GetLocationByQr(string qrCode)
+        public List<CableLocationResult> GetLocationsByQr(string qrCode)
         {
-            CableLocationResult result = null;
+            var results = new List<CableLocationResult>();
 
             using (SqlConnection con = new SqlConnection(ConnectionString))
             {
                 con.Open();
-                string query = @"SELECT TOP 1 line, location 
+                string query = @"SELECT DISTINCT line, location 
                          FROM mst_cable 
-                         WHERE cable_id = @qrCode OR qr_code = @qrCode";
+                         WHERE cable_id = @qrCode 
+                            OR qr_code = @qrCode 
+                            OR unit_model = @qrCode";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
                     cmd.Parameters.AddWithValue("@qrCode", qrCode);
-
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        if (reader.Read())
+                        while (reader.Read())
                         {
-                            result = new CableLocationResult
+                            results.Add(new CableLocationResult
                             {
                                 Line = reader["line"]?.ToString(),
                                 Location = reader["location"]?.ToString()
-                            };
+                            });
                         }
                     }
                 }
             }
-            return result;
+            return results;
         }
 
         public bool UpdateCableStatusToIn(string cableId, string sesa_id)

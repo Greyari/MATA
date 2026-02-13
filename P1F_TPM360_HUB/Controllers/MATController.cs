@@ -1010,6 +1010,7 @@ namespace P1F_TPM360_HUB.Controllers
                             data.target_completion = reader["target_completion"] != DBNull.Value ? ((DateTime)reader["target_completion"]).ToString("yyyy-MM-dd") : "-";
                             data.status_action = reader["status_action"].ToString();
                             data.completed_date = reader["completed_date"] != DBNull.Value ? ((DateTime)reader["completed_date"]).ToString("yyyy-MM-dd") : "-";
+                            data.date_find = reader["finding_date"] != DBNull.Value ? ((DateTime)reader["finding_date"]).ToString("yyyy-MM-dd") : "-";
                             data.picture = reader["picture_finding"].ToString();
                             data.image = reader["image"].ToString();
                         }

@@ -3,7 +3,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @using System.Security.Claims
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Views/Shared/_LayoutMAT.cshtml";
     var userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
     bool isAdmin = (userLevel == "admin");
     bool isAdminObservation = (userLevel == "admin_observation");
@@ -1321,10 +1321,10 @@
             const month = String(today.getMonth() + 1).padStart(2, '0'); 
             const day = String(today.getDate()).padStart(2, '0'); 
             const maxDate = `${year}-${month}-${day}`;
-            const dateInput = document.getElementById('date_completed');
-            if (dateInput) {
-                dateInput.max = maxDate;
-            }
+            // const dateInput = document.getElementById('date_completed');
+            // if (dateInput) {
+            //     dateInput.max = maxDate;
+            // }
             const dateInput2 = document.getElementById('date_find');
             if (dateInput2) {
                 dateInput2.max = maxDate;
@@ -1847,6 +1847,16 @@
                     $('.display_status').val(data.status_action);
                     $('.display_date_completed').val(data.completed_date && data.completed_date !== '-' ? new Date(data.completed_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).replace(/(\w+) (\d+), (\d+)/, '$1 $2, $3') : '');
 
+                    if (data.date_find) {
+                        var findDateOnly = data.date_find.split('T')[0];
+
+                        var $dateInputs = $('#date_completed, #date_target_add, #date_target_assigned');
+
+                        $dateInputs.removeAttr('max');
+                        $dateInputs.attr('min', findDateOnly);
+
+                        console.log("Tanggal minimal diset ke: " + findDateOnly);
+                    }
                     var statusValue = data.status_action;
                     var $dateCompletedContainer = $('.date_completed_container');
                     if (statusValue && statusValue.trim() == "Closed") {
@@ -1910,6 +1920,16 @@
                     $('.display_date_target').val(data.target_completion);
                     $('.display_status').val(data.status_action);
                     $('.display_date_completed').val(data.completed_date);
+                    if (data.date_find) {
+                        var findDateOnly = data.date_find.split('T')[0];
+
+                        var $dateInputs = $('#date_completed, #date_target_add, #date_target_assigned');
+
+                        $dateInputs.removeAttr('max');
+                        $dateInputs.attr('min', findDateOnly);
+
+                        console.log("Tanggal minimal diset ke: " + findDateOnly);
+                    }
                     var statusValue = data.status_action;
                     var $dateCompletedContainer = $('.date_completed_container');
                     if (statusValue && statusValue.trim() == "Closed") {

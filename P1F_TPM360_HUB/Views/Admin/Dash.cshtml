@@ -43,15 +43,15 @@
                 <div class="card w-100 @(canAccessMAT ? "bg-white" : "bg-disabled") shadow mb-3"
                      data-aos="fade-right" data-aos-easing="ease-out-cubic" data-aos-duration="500"
                      style="border-radius:20px; border-width:2px;">
-                        <a href="@Url.Action("Observation", "MAT")" class="text-decoration-none">
-                            <div class="card-body d-flex align-items-center text-dark">
-                                <img src="~/assets/machine.png" style="width:100px; height:100px; margin-right:15px;">
-                                <div>
-                                    <h6 class="mb-1 fw-bold">Machine Abnormality Tracking</h6>
-                                    <p class="mb-0">Track machine anomalies to minimize downtime and maintain efficiency.</p>
-                                </div>
+                    <a href="@Url.Action("Observation", "MAT")" class="text-decoration-none">
+                        <div class="card-body d-flex align-items-center text-dark">
+                            <img src="~/assets/machine.png" style="width:100px; height:100px; margin-right:15px;">
+                            <div>
+                                <h6 class="mb-1 fw-bold">Machine Abnormality Tracking</h6>
+                                <p class="mb-0">Track machine anomalies to minimize downtime and maintain efficiency.</p>
                             </div>
-                        </a>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -60,47 +60,53 @@
                 <div class="card w-100 @(canAccessCMS ? "bg-white" : "bg-disabled") shadow mb-3"
                      data-aos="fade-down" data-aos-easing="ease-out-cubic" data-aos-duration="500"
                      style="border-radius:20px; border-width:2px;">
-                        <a href="@Url.Action("Index", "CMS")" class="text-decoration-none">
-                            <div class="card-body d-flex align-items-center text-dark">
+                    <a href="@Url.Action("Index", "CMS")" class="text-decoration-none">
+                        <div class="card-body d-flex align-items-center text-dark">
                             <img src="~/assets/drawer-line-icon-vector.jpg" style="width:100px; height:100px; margin-right:15px;">
-                                <div>
-                                    <h6 class="mb-1 fw-bold">Cable Management System</h6>
-                                    <p class="mb-0">Streamline cable borrowing, returning, and inventory tracking.</p>
-                                </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold">Cable Management System</h6>
+                                <p class="mb-0">Streamline cable borrowing, returning, and inventory tracking.</p>
                             </div>
-                        </a>
+                        </div>
+                    </a>
                 </div>
             </div>
-    
+
+        </div>
     </div>
-</div>
 
-<style nonce="@nonce">
-    html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden !important; /* Non-scrollable total */
-    }
-    
-    .bg-disabled {
-        background-color: #d3d3d3;
-    }
+    <style nonce="@nonce">
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden !important; /* Non-scrollable total */
+        }
 
-    .card-tag {
-        transition: transform 0.4s ease-out;
-    }
+        .bg-disabled {
+            background-color: #d3d3d3;
+        }
 
-    .card-tag:not(.disabled-wrapper):hover {
-        transform: translateY(-3px);
-        cursor: pointer;
-    }
+        .card-tag {
+            transition: transform 0.4s ease-out;
+        }
 
-    .disabled-wrapper {
-        cursor: not-allowed !important;
-    }
+            .card-tag:not(.disabled-wrapper):hover {
+                transform: translateY(-3px);
+                cursor: pointer;
+            }
 
-    .disabled-wrapper a {
-        pointer-events: none;
-    }
-</style>
+        .disabled-wrapper {
+            cursor: not-allowed !important;
+        }
+
+            .disabled-wrapper a {
+                pointer-events: none;
+            }
+
+        .bg-custom {
+            background-color: rgba(58, 235, 79, 0.52);
+        }
+
+
+    </style>
