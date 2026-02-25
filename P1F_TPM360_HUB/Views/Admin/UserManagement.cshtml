@@ -305,28 +305,91 @@
             }
 
             // ACTION SAVE EDIT
+            // function verify_save() {
+            //     const payload = {
+            //         id_user: $('#id').val(),
+            //         sesa_id: $('#sesa_id').val(),
+            //         name: $('#name').val(),
+            //         level: ($('#select_level').val() || []).join(';') + ';',
+            //         role: ($('#edit_role').val() || []).join(';') + ';'
+            //     };
+
+            //     Swal.fire({
+            //         title: 'Update User?',
+            //         icon: 'warning',
+            //         showCancelButton: true,
+            //         confirmButtonText: 'Yes, update!'
+            //     }).then((result) => {
+            //         if (result.isConfirmed) {
+            //             $.post("@Url.Action("UpdateUser", "Admin")", payload, function () {
+            //                 Swal.fire('Updated!', '', 'success').then(() => window.location.reload());
+            //             });
+            //         }
+            //     });
+            // }
+
+            // ACTION SAVE EDIT
             function verify_save() {
                 const payload = {
                     id_user: $('#id').val(),
                     sesa_id: $('#sesa_id').val(),
                     name: $('#name').val(),
+                    email: $('#email').val(),
+                    // Menggabungkan array multi-select menjadi string "level1;level2;"
                     level: ($('#select_level').val() || []).join(';') + ';',
                     role: ($('#edit_role').val() || []).join(';') + ';'
                 };
 
+                if (!payload.name || !payload.sesa_id) {
+                    return Swal.fire('Error', 'SESA ID and Name are required!', 'error');
+                }
+
                 Swal.fire({
                     title: 'Update User?',
+                    text: "Are you sure you want to save these changes?",
                     icon: 'warning',
                     showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#dc3545',
                     confirmButtonText: 'Yes, update!'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $.post("@Url.Action("UpdateUser", "Admin")", payload, function () {
-                            Swal.fire('Updated!', '', 'success').then(() => window.location.reload());
+                        $('#spinner_loading').show();
+
+                        $.post("@Url.Action("UpdateUser", "Admin")", payload, function (response) {
+                            $('#spinner_loading').hide();
+                            if (response.success) {
+                                Swal.fire('Updated!', response.message, 'success').then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', response.message, 'error');
+                            }
+                        }).fail(function() {
+                            $('#spinner_loading').hide();
+                            Swal.fire('Error!', 'Server connection failed', 'error');
                         });
                     }
                 });
             }
+
+            // ACTION CREATE NEW
+            // $("#create_Data").click(function () {
+            //     const payload = {
+            //         sesa_id: $('#sesa_id2').val(),
+            //         name: $('#name2').val(),
+            //         password: $('#password').val(),
+            //         email: $('#email2').val(),
+            //         level: ($('#select_levelx').val() || []).join(';') + ';',
+            //         role: ($('#select_rolex').val() || []).join(';') + ';'
+            //     };
+
+            //     if (!payload.password) return Swal.fire('Error', 'Password is required', 'error');
+
+            //     $.post("@Url.Action("AddUser", "Admin")", payload, function () {
+            //         Swal.fire('Success', 'User Added', 'success').then(() => window.location.reload());
+            //     });
+            // });
 
             // ACTION CREATE NEW
             $("#create_Data").click(function () {
@@ -339,11 +402,72 @@
                     role: ($('#select_rolex').val() || []).join(';') + ';'
                 };
 
-                if (!payload.password) return Swal.fire('Error', 'Password is required', 'error');
+                // Validasi input dasar
+                if (!payload.sesa_id || !payload.name || !payload.password) {
+                    return Swal.fire('Error', 'SESA ID, Name, and Password are required!', 'error');
+                }
 
-                $.post("@Url.Action("AddUser", "Admin")", payload, function () {
-                    Swal.fire('Success', 'User Added', 'success').then(() => window.location.reload());
+                $('#spinner_loading').show();
+
+                $.post("@Url.Action("AddUser", "Admin")", payload, function (response) {
+                    $('#spinner_loading').hide();
+                    if (response.success) {
+                        Swal.fire('Success', response.message, 'success').then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                }).fail(function() {
+                    $('#spinner_loading').hide();
+                    Swal.fire('Error', 'Server error or path not found (404)', 'error');
                 });
+            });
+
+        // ACTION DELETE SINGLE USER
+            function btn_delete(id_user) {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545', // Warna Merah
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#spinner_loading').show();
+
+                        $.post("@Url.Action("DeleteUser", "Admin")", { id: id_user }, function (response) {
+                            $('#spinner_loading').hide();
+                            if (response.success) {
+                                Swal.fire('Deleted!', response.message, 'success').then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', response.message, 'error');
+                            }
+                        }).fail(function() {
+                            $('#spinner_loading').hide();
+                            Swal.fire('Error!', 'Server connection failed', 'error');
+                        });
+                    }
+                });
+            }
+
+        // ACTION DELETE MULTIPLE
+            $("#delete_select").click(function () {
+                var selectedIds = [];
+                $(".select_item:checked").each(function () {
+                    selectedIds.Add($(this).val()); // Ambil ID dari checkbox
+                });
+
+                if (selectedIds.length === 0) {
+                    return Swal.fire('Info', 'Please select at least one user', 'info');
+                }
+
+                // Gunakan logika Swal.fire dan $.post yang mirip dengan btn_delete
+                // namun kirimkan array ID ke server.
             });
         </script>
     }

@@ -869,7 +869,7 @@
                                         Completed Date
                                         <span style="color: red; font-weight:bold;">*</span>
                                     </label>
-                                    <input class="form-control form-control-sm" type="date" id="date_completed" />
+                                    <input class="form-control form-control-sm" type="date" id="date_completed_val" />
                                 </div>
                                 <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
                                     <label style="font-size:10pt; font-weight:bold;" class="mb-1">Finding Picture</label>
@@ -1469,11 +1469,17 @@
             $('#fixed_myself').on('change', function() {
             var selectedValue = $(this).val();
             var $fields = $('.fixed-myself-fields');
+            var $amChecklist = $('#am_checklist_fixed_add');
 
             if (selectedValue === 'Fixed by myself') {
                 $fields.slideDown(200);
 
-                $('#am_checklist_fixed_add').trigger('change');
+                // $('#am_checklist_fixed_add').trigger('change');
+
+                // PAKSA KE "N" (No) karena user merangkap Role dan harus input manual
+                $amChecklist.val('N').trigger('change');
+                // Kunci agar tidak bisa diganti ke "Yes"
+                $amChecklist.prop('disabled', true);
 
                 $('#abn_type_add').prop('required', true);
                 $('#abn_happen_add').prop('required', true);
@@ -2292,38 +2298,136 @@
         var action_owner_sesa = $('#action_owner_sesa_hidden').val();
         var validated_by_sesa = $('#validated_by_sesa_hidden').val();
         var fileInputPdf = $('#pdfFile_add')[0].files[0];
+        var am_checklist, assigned_action, status_for_action, date_completed;
 
-        if (fixed_myself === 'Fixed by myself') {
-            if (abn_type === '--- Select ---' || !abn_happen || abn_happen === '--- Select ---' || abn_rootcause === '--- Select ---' || !input_root || !input_corrective_action || !fileInputAction || !date_target) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please Fill in All the Action Owner/Fixed by myself requirements!'
-                });
+        // if (fixed_myself === 'Fixed by myself') {
+        //     if (abn_type === '--- Select ---' || !abn_happen || abn_happen === '--- Select ---' || abn_rootcause === '--- Select ---' || !input_root || !input_corrective_action || !fileInputAction || !date_target) {
+        //         Swal.fire({
+        //             icon: 'error',
+        //             title: 'Error',
+        //             text: 'Please Fill in All the Action Owner/Fixed by myself requirements!'
+        //         });
+        //         return;
+        //     }
+
+        //     if ((abn_type === 'SOC' || abn_type === 'HTA') && !input_machine) {
+        //         Swal.fire({
+        //             icon: 'error',
+        //             title: 'Error',
+        //             text: 'Please fill in Machine Major/Sub Part!'
+        //         });
+        //         return;
+        //     }
+        // }
+
+        // if (!date_find || !facility_id || !line || !station || !tpm_tag || !finding || !fileInput) {
+        //     Swal.fire({
+        //         icon: 'error',
+        //         title: 'Error',
+        //         text: 'Please Fill in All the required Finding fields first!'
+        //     });
+        //     return; 
+        // }
+
+        // 1. VALIDASI UNTUK ALUR: FIXED BY MYSELF (User merangkap Role)
+               // 1. VALIDASI UNTUK ALUR: FIXED BY MYSELF
+        // if (fixed_myself === 'Fixed by myself') {
+
+        //     Cek Root Cause Data Dasar
+        //     if (abn_type === '--- Select ---' || abn_happen === '--- Select ---' || abn_rootcause === '--- Select ---' || !input_root) {
+        //         Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in all Root Cause requirements!' });
+        //         return;
+        //     }
+
+        //     --- PERBAIKAN: Validasi Action Data Satu per Satu ---
+
+        //     if (!input_corrective_action) {
+        //         Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in the Countermeasure / Corrective Action!' });
+        //         return;
+        //     }
+
+        //     if (!fileInputAction) {
+        //         Swal.fire({ icon: 'error', title: 'Error', text: 'Please upload the Action Picture!' });
+        //         return;
+        //     }
+
+        //     if (!date_target) {
+        //         Swal.fire({ icon: 'error', title: 'Error', text: 'Please select the Target Completion Date!' });
+        //         return;
+        //     }
+
+        //     Validasi mesin jika tipe SOC/HTA
+        //     if ((abn_type === 'SOC' || abn_type === 'HTA') && !input_machine) {
+        //         Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in Machine Major/Sub Part!' });
+        //         return;
+        //     }
+        // }
+
+                if (fixed_myself === 'Fixed by myself') {
+
+            // 1. Validasi Data Dasar
+            if (abn_type === '--- Select ---' || abn_happen === '--- Select ---' || abn_rootcause === '--- Select ---' || !input_root) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in all Root Cause requirements!' });
+                return;
+            }
+
+            // 2. Validasi Kolom Perbaikan Satu per Satu
+            if (!input_corrective_action) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in the Countermeasure / Corrective Action!' });
+                return;
+            }
+
+            if (!fileInputAction) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please upload the Action Picture!' });
+                return;
+            }
+
+            if (!date_target) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select the Target Completion Date!' });
                 return;
             }
 
             if ((abn_type === 'SOC' || abn_type === 'HTA') && !input_machine) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please fill in Machine Major/Sub Part!'
-                });
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in Machine Major/Sub Part!' });
                 return;
             }
+
+            // --- TAMBAHKAN LOGIKA INI AGAR STATUS & ASSIGNED KEDETEKSI ---
+            // Kita set variabel lokal, jangan ambil dari input yang .disabled
+            am_checklist = 'N';
+            assigned_action = 'SELF';
+            status_for_action = 'Open';
+            date_completed = date_target;
         }
 
-        if (!date_find || !facility_id || !line || !station || !tpm_tag || !finding || !fileInput) {
+        // 2. VALIDASI UNTUK ALUR: ACTION OWNER (Delegasi ke orang lain)
+        else if (fixed_myself === 'Action owner') {
+            // Untuk Action Owner, yang paling kritikal adalah Finding dan Target perbaikan jika ada
+            // Anda bisa menambahkan validasi khusus di sini jika diperlukan,
+            // tapi biasanya hanya butuh data Finding standar.
+        }
+
+        // 3. VALIDASI UMUM (Finding) - Berlaku untuk semua alur
+        if (!date_find || facility_id === '--- Select Facility ---' || !line || !station || !tpm_tag || !finding || !fileInput) {
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'Please Fill in All the required Finding fields first!'
+                title: 'Incomplete Finding',
+                text: 'Please fill in all basic Finding fields and upload the finding picture!'
             });
-            return; 
+            return;
         }
 
-        var am_checklist = (fixed_myself === 'Fixed by myself') ? 'N' : null;
+        // var am_checklist = (fixed_myself === 'Fixed by myself') ? 'N' : null;
+        // var assigned_action = (fixed_myself === 'Fixed by myself') ? 'SELF' : null;
+        // var status_for_action = (fixed_myself === 'Fixed by myself') ? 'Open' : 'Closed';
+        // var date_completed = (fixed_myself === 'Fixed by myself') ? date_target : null;
+
+        // --- BAGIAN YANG DIUBAH ---
+        // Jika Fixed by myself, kita paksa AM Checklist ke 'N' (No)
+        // karena dia harus mengisi kolom Countermeasure & Action Picture sendiri.
+        var am_checklist = (fixed_myself === 'Fixed by myself') ? 'N' : $('#am_checklist_fixed_add').val();
         var assigned_action = (fixed_myself === 'Fixed by myself') ? 'SELF' : null;
+        // Status diatur Open agar masuk ke flow validation (karena perlu divalidasi validator)
         var status_for_action = (fixed_myself === 'Fixed by myself') ? 'Open' : 'Closed';
         var date_completed = (fixed_myself === 'Fixed by myself') ? date_target : null;
 
@@ -2536,7 +2640,7 @@
             var order_id = $('#order_id').val();
             var remark = $('#remark').val();
             var status = $('#status').val();
-            var date_completed = $('#date_completed').val();
+            var date_completed = $('#date_completed_val').val();
 
             if (!order_id || order_id.trim() === '' || !remark || remark.trim() === '' || !status || status.trim() === '') {
                 Swal.fire({

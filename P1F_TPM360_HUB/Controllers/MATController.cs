@@ -560,7 +560,6 @@ namespace P1F_TPM360_HUB.Controllers
        string fixed_myself,
        string abn_type, string abn_happen, string abn_rootcause, string input_root, string input_machine,
        string input_corrective_action, IFormFile file_action, string date_target,
-
        string am_checklist,
        string assigned_action,
        string status_for_action,
@@ -718,7 +717,8 @@ namespace P1F_TPM360_HUB.Controllers
             var sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
 
-            if (userLevel == "mat" || userLevel == "mat_admin")
+            //if (userLevel == "mat" || userLevel == "mat_admin")
+            if (userLevel.Contains("mat") || userLevel.Contains("admin") || userLevel.Contains("superadmin"))
             {
                 try
                 {
@@ -815,7 +815,8 @@ namespace P1F_TPM360_HUB.Controllers
             var sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
 
-            if (userLevel == "mat" || userLevel == "mat_admin")
+            //if (userLevel == "mat" || userLevel == "mat_admin")
+            if (userLevel.Contains("mat") || userLevel.Contains("admin") || userLevel.Contains("superadmin"))
             {
                 try
                 {
@@ -852,7 +853,8 @@ namespace P1F_TPM360_HUB.Controllers
             var sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
 
-            if (userLevel == "mat" || userLevel == "mat_admin")
+            //if (userLevel == "mat" || userLevel == "mat_admin")
+            if (userLevel.Contains("mat") || userLevel.Contains("admin") || userLevel.Contains("superadmin"))
             {
                 try
                 {

@@ -66,6 +66,131 @@ namespace P1F_TPM360_HUB.Controllers
             }
         }
 
+        [HttpPost]
+        public JsonResult AddUser(string sesa_id, string name, string password, string email, string level, string role)
+        {
+            try
+            {
+                // 1. Enkripsi Password (Menggunakan class Authentication yang sudah ada di proyek Anda)
+                var auth = new Authentication();
+                string encryptedPassword = auth.MD5Hash(password);
+
+                using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+                {
+                    // 2. Query Insert
+                    // Sesuaikan nama kolom (id_user biasanya identity, jadi tidak perlu di-insert manual)
+                    string query = @"INSERT INTO mst_users (sesa_id, name, password, email, level, role, record_date) 
+                             VALUES (@sesa_id, @name, @password, @email, @level, @role, GETDATE())";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@sesa_id", sesa_id ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@name", name ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@password", encryptedPassword);
+                        cmd.Parameters.AddWithValue("@email", email ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@level", level ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@role", role ?? (object)DBNull.Value);
+
+                        conn.Open();
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        conn.Close();
+
+                        if (rowsAffected > 0)
+                        {
+                            return Json(new { success = true, message = "User successfully added!" });
+                        }
+                        else
+                        {
+                            return Json(new { success = false, message = "Failed to add user to database." });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public JsonResult UpdateUser(int id_user, string sesa_id, string name, string email, string level, string role)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+                {
+                    // Query untuk memperbarui data user berdasarkan id_user
+                    string query = @"UPDATE mst_users 
+                             SET sesa_id = @sesa_id, 
+                                 name = @name, 
+                                 email = @email, 
+                                 level = @level, 
+                                 role = @role,
+                                 record_date = GETDATE()
+                             WHERE id_user = @id_user";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id_user", id_user);
+                        cmd.Parameters.AddWithValue("@sesa_id", sesa_id ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@name", name ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@email", email ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@level", level ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@role", role ?? (object)DBNull.Value);
+
+                        conn.Open();
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        conn.Close();
+
+                        if (rowsAffected > 0)
+                        {
+                            return Json(new { success = true, message = "User updated successfully!" });
+                        }
+                        else
+                        {
+                            return Json(new { success = false, message = "No changes made or user not found." });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public JsonResult DeleteUser(int id)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_db.ConnectionString))
+                {
+                    string query = "DELETE FROM mst_users WHERE id_user = @id";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        conn.Open();
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        conn.Close();
+
+                        if (rowsAffected > 0)
+                        {
+                            return Json(new { success = true, message = "User has been deleted." });
+                        }
+                        else
+                        {
+                            return Json(new { success = false, message = "User not found or already deleted." });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
+
         public IActionResult GETUSER(string sesa_id, string level, string name)
         {
             using (SqlConnection conn = new SqlConnection(_db.ConnectionString))

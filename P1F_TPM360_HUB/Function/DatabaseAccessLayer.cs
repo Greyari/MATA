@@ -8,7 +8,8 @@ namespace P1F_TPM360_HUB.Function
 {
     public class DatabaseAccessLayer
     {
-        public string ConnectionString = "Data Source=10.155.129.69;Initial Catalog=P1F_MAINT;Persist Security Info=True;User ID=dtuser;Password=DTCavite@2024;MultipleActiveResultSets=true;TrustServerCertificate=True;";
+        //public string ConnectionString = "Data Source=10.155.129.69;Initial Catalog=P1F_MAINT_QAS;Persist Security Info=True;User ID=dtuser;Password=DTCavite@2024;MultipleActiveResultSets=true;TrustServerCertificate=True;";
+        public string ConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=P1F_MAINT_QAS;Integrated Security=True;";
 
         public List<DropdownModel> GetLevel()
         {
