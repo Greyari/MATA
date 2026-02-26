@@ -4,240 +4,546 @@
 @using System.Security.Claims
 
 @{
-    string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    string name = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
-    string level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-    int is_registered = 1;
-    if (level == null)
-    {
-        is_registered = 0;
-    }
+    string sesaId   = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string name     = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
+    string level    = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
+    bool   isRegistered = level != null;
 
     Layout = null;
     var nonce = Context.Items["CspNonce"] as string;
+
+    bool hasError   = TempData["MessageSSO"] != null || ViewData["Message"] != null;
 }
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TPM360 Hub</title>
+    <title>TPM360 Hub – Login</title>
 
     <link rel="icon" type="image/x-icon" href="~/images/icon/seicongreenwstroke.svg">
-    <!-- AdminLTE V3 -->
-    <link href="~/Content/adminlte.min.css" rel="stylesheet" />
-    <link href="~/lib/adminlte/plugins/fontawesome-free/css/all.css" rel="stylesheet" />
-    <link href="~/lib/adminlte/plugins/fontawesome-free/css/fontawesome.css" rel="stylesheet" />
-    <link href="~/lib/adminlte/plugins/fontawesome-free/css/solid.css" rel="stylesheet" />
-    <link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
-    <link href="~/lib/adminlte/dist/css/adminlte.min.css" rel="stylesheet" />
-    <link href="~/lib/adminlte/plugins/sweetalert2/sweetalert2.css" rel="stylesheet" />
+
+    <!-- AdminLTE & Plugins -->
+    <link href="~/lib/adminlte/plugins/fontawesome-free/css/all.css"        rel="stylesheet" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.css"                     rel="stylesheet" />
+    <link href="~/lib/adminlte/dist/css/adminlte.min.css"                   rel="stylesheet" />
+    <link href="~/lib/adminlte/plugins/sweetalert2/sweetalert2.css"         rel="stylesheet" />
     <link rel="stylesheet" href="~/css/custom-fonts.css" />
-    <link rel="stylesheet" href="~/css/custom-fonts.css" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 
-<body class="bg">
-    <div class="d-flex justify-content-center align-items-center vh-100">
-        <div class="container mask p-4 p-md-5 shadow-lg">
-            <div class="row align-items-center justify-content-center">
-                <!-- LEFT (branding) -->
-                <div class="col-12 col-lg-6 text-lg-start mb-4 mb-lg-0 custom-alignment">
-                    <div class="text-success mb-3">
-                        <!-- Icon besar di desktop, kecil di mobile -->
-                        @* <i class="fas fa-chart-area fa-5x"></i> *@
-                    </div>
-                    <div>
-                        <img src="~/assets/tpm-icon.png" alt="Logo" class="nav-logo">
-                    </div>
+<body class="login-bg">
 
-                    @* <h8 class="text-muted">P1F Headcount</h8> *@
-                    <div class="mt-4">
-                        <p class="text-muted small">version 1.0</p>
+    <!-- ===== MAIN WRAPPER ===== -->
+    <div class="login-wrapper">
+
+        <!-- ===== CARD ===== -->
+        <div class="login-card">
+
+            <!-- LEFT PANEL — Branding -->
+            <div class="login-panel login-panel--left">
+                <div class="panel-inner">
+                    <img src="~/assets/tpm-icon.png" alt="TPM360 Logo" class="brand-logo">
+
+                    <div class="brand-tagline">
+                        <p class="tagline-title">Machine Abnormality<br>Tracking Application</p>
+                        <p class="tagline-sub">Schneider Electric Philippines</p>
                     </div>
                 </div>
 
-                <!-- RIGHT (login box) -->
-                <div class="col-12 col-lg-6">
-                    <div class="p-3 p-md-4 text-lg-start">
-                        <div class="custom-alignment text-lg-start">
-                            <h4>Welcome,</h4>
-                            <h4>Please Login</h4>
+                <!-- decorative shapes -->
+                <div class="deco deco--circle-1" aria-hidden="true"></div>
+                <div class="deco deco--circle-2" aria-hidden="true"></div>
+            </div>
+
+            <!-- RIGHT PANEL — Login Form -->
+            <div class="login-panel login-panel--right">
+                <div class="panel-inner">
+
+                    <!-- SE Logo -->
+                    <img src="~/assets/logo.png" alt="Schneider Electric" class="se-logo">
+
+                    <!-- Heading -->
+                    <div class="login-heading">
+                        <h1 class="greeting">Welcome Back</h1>
+                        <p class="sub-greeting">Sign in to continue to TPM360 Hub</p>
+                    </div>
+
+                    <!-- ─── SSO Error ─── -->
+                    @if (TempData["MessageSSO"] != null)
+                    {
+                        <div class="alert-box alert-box--danger" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            @Html.Raw(TempData["MessageSSO"])
                         </div>
-                        @if (TempData["MessageSSO"] != null) // <-- CHANGE THIS LINE
-                        {
-                            <div class="mt-3">
-                                <div class="alert alert-danger text-center small">
-                                    @Html.Raw(TempData["MessageSSO"]) @* Use Html.Raw() to render the <br> tag *@@* You don't have access,<br />Please contact admin for support. *@
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="d-flex justify-content-between mt-2">
-                                <button class="btn btn-info btn-flat rounded flex-fill ms-1 me-1 py-2 mr-1" onclick="login()">
-                                    <i class="fas fa-sign-in-alt"></i> Login with SESA
-                                </button>
-                            </div>
+                    }
 
-                        }
+                    <!-- ─── ViewData Error ─── -->
+                    @if (ViewData["Message"] != null)
+                    {
+                        <div class="alert-box alert-box--danger" role="alert">
+                            <i class="fas fa-lock me-2"></i>
+                            You don't have access. Please contact admin for support.
+                        </div>
+                    }
 
-                        @if (ViewData["Message"] != null)
-                        {
-                            <div class="mt-3">
-                                <div class="alert alert-danger text-center small">
-                                    You don't have access,<br />
-                                    Please contact admin for support.
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- FOOTER -->
-            <div class="row mt-4 pt-3 border-top">
-                <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start">
-                    <div class="text-success mb-2 mb-md-0">
-                        <ul class="list-unstyled mb-0 small">
-                            <li>Machine Abnormality Tracking Application (MATA)</li>
-                            <li>Schneider Electric Philippines</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <img src="~/assets/logo.png"
-                             class="d-inline-block align-text-top img-fluid"
-                             style="max-width: 120px;" alt="Schneider Electric Logo">
-                    </div>
+                    <!-- ─── Login Button (shown only when no SSO error) ─── -->
+                    @if (TempData["MessageSSO"] == null)
+                    {
+                        <button class="btn-sesa" onclick="openLoginModal()" type="button">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Login with SESA
+                        </button>
+                    }
                 </div>
             </div>
+
         </div>
-
-        <div class="modal fade" id="modal_login" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-md">
-                <div class="modal-content border-0 rounded-4 shadow-sm">
-                    <div class="modal-body p-4 text-center">
-                        <!-- Judul -->
-                        <i class="fas fa-sign-in-alt"></i> Login with SESA
-
-                        <!-- Form Input -->
-                        <form id="form_add" method="post" action="@Url.Action("LoginManual", "Home")">
-                            @Html.AntiForgeryToken()
-                            <div class="mb-3 text-start">
-                                <label class="form-label">SESA ID</label>
-                                @Html.TextBoxFor(model => model.sesa_id, new { @class = "form-control", placeholder = "SESA ID", autocomplete = "on" })
-                            </div>
-                            <div class="mb-3 text-start">
-                                <label class="form-label">Password</label>
-                                @Html.PasswordFor(model => model.password, new { @class = "form-control", placeholder = "Password", autocomplete = "off" })
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-secondary flex-fill mr-2" data-dismiss="modal">
-                                    Cancel
-                                </button>
-                                <button type="submit" class="btn btn-success flex-fill">
-                                    Submit <i class="fa fa-arrow-right ms-1"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <!-- /login-card -->
 
     </div>
+    <!-- /login-wrapper -->
 
 
+    <!-- ===== MODAL — SESA Login ===== -->
+    <div class="modal fade" id="modal_login" tabindex="-1" aria-labelledby="modal_login_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content login-modal">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal_login_label">
+                        <i class="fas fa-sign-in-alt mr-2 me-2 text-success"></i>SESA Login
+                    </h5>
+                    <button type="button" class="btn-close-modal" data-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="form_login" method="post" action="@Url.Action("LoginManual", "Home")" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div class="field-group">
+                            <label for="sesa_id" class="field-label">SESA ID</label>
+                            @Html.TextBoxFor(m => m.sesa_id, new {
+                                @class       = "field-input",
+                                id           = "sesa_id",
+                                placeholder  = "SESA*****",
+                                autocomplete = "username"
+                            })
+                        </div>
+
+                        <div class="field-group">
+                            <label for="password" class="field-label">Password</label>
+                            @Html.PasswordFor(m => m.password, new {
+                                @class       = "field-input",
+                                id           = "password",
+                                placeholder  = "••••••••",
+                                autocomplete = "current-password"
+                            })
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="submit" class="btn-submit">
+                                Sign In <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- /modal -->
+
+
+    <!-- ===== SCRIPTS ===== -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
     <script src="~/lib/adminlte/plugins/sweetalert2/sweetalert2.min.js"></script>
+
     <script>
-        function login() {
-            $("div#modal_login").modal("show");
+        /* ─── Open login modal ─── */
+        function openLoginModal() {
+            $("#modal_login").modal("show");
         }
 
-        // File: .cshtml (di dalam tag <script>)
-
-        $("form#form_add").off("submit").on("submit", function (e) {
+        /* ─── AJAX form submit ─── */
+        $("#form_login").on("submit", function (e) {
             e.preventDefault();
 
-            const form = $(this);
-            const formData = form.serialize();
+            const $btn = $(this).find('button[type="submit"]');
+            $btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin me-1"></i> Signing in…');
 
             $.ajax({
-                url: form.attr("action"),
+                url:  $(this).attr("action"),
                 type: "POST",
-                data: formData,
-                success: function (response) {
-                    if (response.success) {
-                        // Jika sukses, redirect ke URL yang diberikan
-                        window.location.href = response.redirectUrl;
+                data: $(this).serialize(),
+                success: function (res) {
+                    if (res.success) {
+                        window.location.href = res.redirectUrl;
                     } else {
-                        // Jika gagal, tampilkan pesan error dari server
-                        Swal.fire("Failed!", response.message, "error");
+                        Swal.fire({ icon: "error", title: "Login Failed", text: res.message });
+                        $btn.prop("disabled", false).html('Sign In <i class="fas fa-arrow-right ms-1"></i>');
                     }
                 },
                 error: function () {
-                    Swal.fire("Error!", "Something went wrong. Please check connection.", "error");
+                    Swal.fire({ icon: "error", title: "Error", text: "Something went wrong. Please check your connection." });
+                    $btn.prop("disabled", false).html('Sign In <i class="fas fa-arrow-right ms-1"></i>');
                 }
             });
-        });    
+        });
     </script>
 
+
+    <!-- ===== STYLES ===== -->
     <style>
-        .nav-logo {
-            width: 60%;
+        /* ── Variables ────────────────────────────────────────────── */
+        :root {
+            --se-green:    #3dcd58;
+            --se-green-dk: #2ba344;
+            --se-dark:     #1a2332;
+            --se-darker:   #111921;
+            --se-muted:    #6b7a90;
+            --se-light:    #f4f7fa;
+            --radius-card: 20px;
+            --radius-btn:  10px;
+            --font-main:   'Sora', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+            --shadow-card: 0 24px 60px rgba(0,0,0,.35);
+        }
+
+        /* ── Reset / Base ─────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body.login-bg {
+            font-family: var(--font-body);
+            background:
+                linear-gradient(160deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.30) 100%),
+                url('@Url.Content("~/images/background/maintenance.jpg")') no-repeat center center / cover fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* ── Card wrapper ─────────────────────────────────────────── */
+        .login-wrapper {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .login-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            min-height: 520px;
+        }
+
+        /* ── Panels ───────────────────────────────────────────────── */
+        .login-panel {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-inner {
+            position: relative;
+            z-index: 2;
+            padding: 3rem 2.5rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* LEFT — dark branded panel */
+        .login-panel--left {
+            background: linear-gradient(145deg, var(--se-darker) 0%, var(--se-dark) 100%);
+            color: #fff;
+        }
+
+        .login-panel--left .panel-inner {
+            justify-content: space-between;
+        }
+
+        .brand-logo {
+            width: 65%;
+            max-width: 220px;
             height: auto;
+            filter: brightness(1.1);
         }
 
-        .bg {
-            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), /* lapisan gelap */
-            url('@Url.Content("~/images/background/maintenance.jpg")') no-repeat center center fixed;
-            background-size: cover;
+        .brand-tagline {
+            margin-top: auto;
+            padding-top: 2rem;
         }
 
-        .mask {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
+        .tagline-title {
+            font-family: var(--font-main);
+            font-size: 1.15rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: #fff;
         }
 
-        .shadow-lg {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        .tagline-sub {
+            font-size: .82rem;
+            color: var(--se-green);
+            margin-top: .35rem;
+            letter-spacing: .04em;
+            text-transform: uppercase;
         }
 
-        .btn-success {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        .badge-version {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: .25rem .75rem;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 999px;
+            font-size: .72rem;
+            color: rgba(255,255,255,.55);
+            letter-spacing: .06em;
         }
 
-            .btn-success:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            }
+        /* Decorative circles on the left panel */
+        .deco {
+            position: absolute;
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .deco--circle-1 {
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(61,205,88,.18) 0%, transparent 70%);
+            top: -80px; right: -80px;
+        }
+        .deco--circle-2 {
+            width: 180px; height: 180px;
+            background: radial-gradient(circle, rgba(61,205,88,.1) 0%, transparent 70%);
+            bottom: 30px; left: -40px;
+        }
 
-        /* .custom-alignment {
+        /* RIGHT — white form panel */
+        .login-panel--right {
+            background: #fff;
+        }
+
+        .login-panel--right .panel-inner {
+            justify-content: center;
+            gap: 1.25rem;
+        }
+
+        .se-logo {
+            width: 110px;
+            height: auto;
+            margin-bottom: .5rem;
+        }
+
+        .login-heading {}
+        .greeting {
+            font-family: var(--font-main);
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--se-dark);
+            line-height: 1.2;
+        }
+        .sub-greeting {
+            font-size: .85rem;
+            color: var(--se-muted);
+            margin-top: .3rem;
+        }
+
+        /* ── Alert box ────────────────────────────────────────────── */
+        .alert-box {
+            padding: .75rem 1rem;
+            border-radius: 8px;
+            font-size: .84rem;
+            line-height: 1.45;
+        }
+        .alert-box--danger {
+            background: #fff2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        /* ── SESA Login Button ────────────────────────────────────── */
+        .btn-sesa {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: .85rem 1.5rem;
+            background: linear-gradient(135deg, var(--se-green) 0%, var(--se-green-dk) 100%);
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: .92rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s, filter .2s;
+            box-shadow: 0 4px 14px rgba(61,205,88,.35);
+        }
+        .btn-sesa:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(61,205,88,.45);
+            filter: brightness(1.05);
+        }
+        .btn-sesa:active {
+            transform: translateY(0);
+        }
+
+        .login-help {
+            font-size: .78rem;
+            color: var(--se-muted);
             text-align: center;
-        } */
+        }
+        .login-help a {
+            color: var(--se-green-dk);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-help a:hover { text-decoration: underline; }
 
-        .nav-logo {
-            width: 60%;
-            height: auto;
+        /* ── Modal ────────────────────────────────────────────────── */
+        .login-modal {
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
         }
 
-        @@media (max-width: 768px) {
-            .iconse {
-                width: 10%;
+        .login-modal .modal-header {
+            background: var(--se-dark);
+            color: #fff;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: none;
+        }
+
+        .login-modal .modal-title {
+            font-family: var(--font-main);
+            font-size: .95rem;
+            font-weight: 600;
+        }
+
+        .btn-close-modal {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,.6);
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: .25rem;
+            transition: color .15s;
+        }
+        .btn-close-modal:hover { color: #fff; }
+
+        .login-modal .modal-body {
+            padding: 1.75rem 1.5rem;
+        }
+
+        /* Form fields */
+        .field-group { margin-bottom: 1.1rem; }
+
+        .field-label {
+            display: block;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--se-dark);
+            margin-bottom: .4rem;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+
+        .field-input {
+            width: 100%;
+            padding: .65rem .9rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: .9rem;
+            font-family: var(--font-body);
+            color: var(--se-dark);
+            background: var(--se-light);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+        }
+        .field-input:focus {
+            border-color: var(--se-green);
+            box-shadow: 0 0 0 3px rgba(61,205,88,.15);
+            background: #fff;
+        }
+        .field-input::placeholder { color: #b0bac6; }
+
+        /* Modal action buttons */
+        .modal-actions {
+            display: flex;
+            gap: .75rem;
+            margin-top: 1.5rem;
+        }
+        .btn-submit {
+            flex: 2;
+            padding: .65rem;
+            border: none;
+            border-radius: var(--radius-btn);
+            background: linear-gradient(135deg, var(--se-green) 0%, var(--se-green-dk) 100%);
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: .875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s, filter .15s;
+            box-shadow: 0 3px 10px rgba(61,205,88,.3);
+        }
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(61,205,88,.4);
+            filter: brightness(1.05);
+        }
+        .btn-submit:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Responsive ───────────────────────────────────────────── */
+        @@media (max-width: 650px) {
+            .login-card {
+                grid-template-columns: 1fr;
             }
 
-
-            .custom-alignment {
-                text-align: center !important;
+            .login-panel--left .panel-inner {
+                padding: 2.5rem 2rem 2rem;
+                flex-direction: row;
                 align-items: center;
-                justify-content: center;
+                gap: 1rem;
+                min-height: unset;
             }
+
+            .brand-logo    { width: 45%; max-width: 150px; }
+            .brand-tagline { margin-top: 0; padding-top: 0; }
+            .badge-version { display: none; }
+            .tagline-title { font-size: .9rem; }
+            .tagline-sub   { font-size: .72rem; }
+            .deco          { display: none; }
+
+            .login-panel--right .panel-inner {
+                padding: 2rem 1.75rem 2.5rem;
+            }
+
+            .greeting { font-size: 1.35rem; }
         }
     </style>
+
 </body>
 </html>
