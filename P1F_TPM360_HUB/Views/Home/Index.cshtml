@@ -78,18 +78,6 @@
                                 <button class="btn btn-info btn-flat rounded flex-fill ms-1 me-1 py-2 mr-1" onclick="login()">
                                     <i class="fas fa-sign-in-alt"></i> Login with SESA
                                 </button>
-
-                                <a href="@Url.Action("Login", "Home")"
-                                   class="btn btn-success btn-flat rounded flex-fill me-1 py-2"
-                                   type="submit" name="submit">
-                                    <img src="~/assets/logos.png"
-                                         alt="SSO Login Icon"
-                                         class="iconse"
-                                         style="width: 20px; vertical-align: middle; margin-right: 1px;">
-                                    SSO Login
-                                </a>
-
-
                             </div>
 
                         }
@@ -113,7 +101,7 @@
                 <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start">
                     <div class="text-success mb-2 mb-md-0">
                         <ul class="list-unstyled mb-0 small">
-                            <li>&copy;2025 - P1F Digital Transformation</li>
+                            <li>Machine Abnormality Tracking Application (MATA)</li>
                             <li>Schneider Electric Philippines</li>
                         </ul>
                     </div>
@@ -196,7 +184,8 @@
                     Swal.fire("Error!", "Something went wrong. Please check connection.", "error");
                 }
             });
-        });    </script>
+        });    
+    </script>
 
     <style>
         .nav-logo {

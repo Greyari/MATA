@@ -1,70 +1,83 @@
-﻿using System;
+﻿// ============================================================
+// FILE 1: FileManagementService.cs
+// ============================================================
+
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
 namespace P1F_TPM360_HUB.Service
 {
+    /// <summary>
+    /// Service untuk menangani upload file ke folder wwwroot/Upload.
+    /// </summary>
     public class FileManagementService
     {
+        // Folder root untuk semua upload
+        private readonly string _uploadRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Upload");
+
+        /// <summary>
+        /// Upload file dengan nama aslinya ke folder wwwroot/Upload.
+        /// Mengembalikan path file jika berhasil, atau "Upload Fail: ..." jika gagal.
+        /// </summary>
         public string UploadFile(IFormFile file)
         {
-            var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim().ToString();
+            string fileName = ContentDispositionHeaderValue
+                .Parse(file.ContentDisposition)
+                .FileName.Trim().ToString();
 
-            var mainPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Upload");
+            EnsureDirectoryExists(_uploadRootPath);
 
-            if (!Directory.Exists(mainPath))
-            {
-                Directory.CreateDirectory(mainPath);
-            }
-
-            var filePath = Path.Combine(mainPath, fileName);
+            string filePath = Path.Combine(_uploadRootPath, fileName);
 
             try
             {
                 using (var stream = new FileStream(filePath, FileMode.Create))
-                {
                     file.CopyTo(stream);
-                }
 
                 return filePath;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return "Upload Fail: " + e.Message;
+                return "Upload Fail: " + ex.Message;
             }
         }
 
+        /// <summary>
+        /// Upload file dengan nama baru ke subfolder tertentu di wwwroot/Upload.
+        /// Format return: "OK;namaFile" jika berhasil, atau "ERROR;pesan" jika gagal.
+        /// </summary>
         public string UploadFileRename(IFormFile file, string filename, string subfolder)
         {
-            var originalFileName = Path.GetFileName(ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim().ToString());
-            var fileExtension = Path.GetExtension(originalFileName); // Get file extension
+            string originalFileName = Path.GetFileName(
+                ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim().ToString());
 
-            // Create a new file name (e.g., using provided filename and file extension)
-            var newFileName = filename + fileExtension;
+            string extension   = Path.GetExtension(originalFileName);
+            string newFileName = filename + extension;
 
-            var mainPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Upload", subfolder);
+            string folderPath = Path.Combine(_uploadRootPath, subfolder);
+            EnsureDirectoryExists(folderPath);
 
-            if (!Directory.Exists(mainPath))
-            {
-                Directory.CreateDirectory(mainPath);
-            }
-
-            var filePath = Path.Combine(mainPath, newFileName); // Use new file name
+            string filePath = Path.Combine(folderPath, newFileName);
 
             try
             {
                 using (var stream = new FileStream(filePath, FileMode.Create))
-                {
                     file.CopyTo(stream);
-                }
 
-                return "OK;" + newFileName; // Return the new file path
+                return "OK;" + newFileName;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return "ERROR;Upload Fail: " + e.Message; // Return detailed error message
+                return "ERROR;Upload Fail: " + ex.Message;
             }
+        }
+
+        // ── Helper ───────────────────────────────────────────────────────────
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
         }
     }
 }

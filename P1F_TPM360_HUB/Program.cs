@@ -5,11 +5,12 @@ using Microsoft.EntityFrameworkCore;
 using P1F_TPM360_HUB.Function;
 using P1F_TPM360_HUB.Service;
 
-
 var builder = WebApplication.CreateBuilder(args);
+var env     = builder.Environment;
 
-var env = builder.Environment;
-
+// ===================================================================
+// KONFIGURASI: appsettings.json + environment variables
+// ===================================================================
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -18,224 +19,196 @@ builder.Configuration
 
 var configuration = builder.Configuration;
 
-string connectionString = "Data Source=10.155.129.69;Initial Catalog=P1F_MAINT;Persist Security Info=True;User ID=dtuser;Password=DTCavite@2024;MultipleActiveResultSets=true;TrustServerCertificate=True;";
+// ===================================================================
+// DATABASE: Entity Framework Core + SQL Server
+// ===================================================================
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-options.UseSqlServer(
-                    connectionString,
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+    options.UseSqlServer(
+        connectionString,
+        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddTransient<ITokenService, TokenService>();
+// ===================================================================
+// AUTENTIKASI: Cookie + OpenID Connect (SSO PingFederate)
+// ===================================================================
 
-// OPENID CONNECT OAUTH2
+// Data Protection: menyimpan encryption key ke filesystem (untuk multi-instance)
 builder.Services.AddDataProtection()
     .SetApplicationName("sso")
     .PersistKeysToFileSystem(new DirectoryInfo(configuration["Auth:KeyStorage"]));
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultScheme          = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-.AddCookie(
-    options =>
-    {
-        //options.LoginPath = "/Account/Login"; // Specify the login page path
-        //options.AccessDeniedPath = "/Account/AccessDenied"; // Optional: Specify the access denied page
-        options.Cookie.Name = "ping";
-        options.Cookie.Path = "/"; // Make cookie accessible for all paths
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use Always in production
-        options.Cookie.HttpOnly = true; // Prevent JavaScript access
-        options.SlidingExpiration = true; // Optional: enable sliding expiration
-    }
-)
+.AddCookie(options =>
+{
+    options.Cookie.Name           = "ping";
+    options.Cookie.Path           = "/";                         // Accessible dari semua path
+    options.Cookie.SecurePolicy   = CookieSecurePolicy.Always;   // Hanya HTTPS
+    options.Cookie.HttpOnly       = true;                        // Tidak bisa diakses JavaScript
+    options.SlidingExpiration     = true;                        // Perpanjang session jika aktif
+})
 .AddOpenIdConnect(options =>
 {
-    options.ClientId = configuration["Auth:ClientId"];
+    options.ClientId     = configuration["Auth:ClientId"];
     options.ClientSecret = configuration["Auth:ClientSecret"];
-    options.Authority = configuration["Auth:Authority"];
+    options.Authority    = configuration["Auth:Authority"];
     options.ResponseType = "code";
     options.Scope.Add("openid");
     options.Scope.Add("profile");
-
-    // Callback URL after authentication
     options.CallbackPath = new PathString(configuration["Auth:CallbackPath"]);
+    options.SaveTokens   = true;
 
-    // Configure what to do upon receiving tokens
-    options.SaveTokens = true;
-
-    var auth = new Authentication();
-    var codeVerifier = auth.GenerateCodeVerifier();
+    // PKCE: code verifier & challenge untuk keamanan tambahan
+    var auth          = new Authentication();
+    var codeVerifier  = auth.GenerateCodeVerifier();
     var codeChallenge = auth.GenerateCodeChallenge(codeVerifier);
-    // Event Handling
+
     options.Events = new OpenIdConnectEvents
     {
-        OnTokenValidated = context =>
-        {
-            return Task.CompletedTask;
-        },
-        OnTicketReceived = context =>
-        {
-            var principal = context.Principal;
-            return Task.CompletedTask;
-        },
+        // Dipanggil setelah token berhasil divalidasi
+        OnTokenValidated = context => Task.CompletedTask,
+
+        // Dipanggil setelah seluruh proses autentikasi selesai
+        OnTicketReceived = context => Task.CompletedTask,
+
+        // Dipanggil sebelum redirect ke halaman login SSO
         OnRedirectToIdentityProvider = context =>
         {
-            //if (context.Response.StatusCode == StatusCodes.Status401Unauthorized || !context.HttpContext.User.Identity.IsAuthenticated)
-            //{
-            //    // Redirect to the custom login page instead of Ping SSO
-            //    context.Response.Redirect("/Account/Login");
-            //    context.HandleResponse(); // Prevent the default redirection to Ping SSO
-            //    return Task.CompletedTask;
-            //}
             var request = context.HttpContext.Request;
-            var scheme = request.Scheme; // HTTP or HTTPS
-            var host = request.Host.Value; // domain and port
-            var pathBase = request.PathBase; // domain and port
-            var path = request.Path; // domain and port
-            var redirect_url = $"{scheme}://{host}{pathBase}/api/auth/Index?originalPath={pathBase}{path}";
+            string scheme    = request.Scheme;
+            string host      = request.Host.Value;
+            string pathBase  = request.PathBase;
+            string path      = request.Path;
+
+            // URL untuk kembali setelah login SSO berhasil
+            string redirectUrl = $"{scheme}://{host}{pathBase}/api/auth/Index?originalPath={pathBase}{path}";
+
             if (env.IsProduction())
             {
-                // Set PKCE parameters in the request
-                context.ProtocolMessage.SetParameter("code_challenge", codeChallenge);
+                // Di production: tambahkan PKCE dan simpan state di cookie
+                context.ProtocolMessage.SetParameter("code_challenge",        codeChallenge);
                 context.ProtocolMessage.SetParameter("code_challenge_method", "S256");
 
-                // Store the code_verifier in the properties for later use during the token request
-                //context.Properties.SetParameter("code_verifier", codeVerifier);
-                context.HttpContext.Response.Cookies.Append("code_verifier", codeVerifier, new CookieOptions
+                var secureCookieOptions = new CookieOptions
                 {
-                    HttpOnly = true, // Optional, improve security
-                    Secure = true, // Ensure cookie is sent over HTTPS
-                    SameSite = SameSiteMode.None // Adjust as necessary for your application
-                });
+                    HttpOnly = true,
+                    Secure   = true,
+                    SameSite = SameSiteMode.None
+                };
 
-                context.HttpContext.Response.Cookies.Append("redirect_url", redirect_url, new CookieOptions
-                {
-                    HttpOnly = true, // Optional, improve security
-                    Secure = true, // Ensure cookie is sent over HTTPS
-                    SameSite = SameSiteMode.None // Adjust as necessary for your application
-                });
+                context.HttpContext.Response.Cookies.Append("code_verifier", codeVerifier,  secureCookieOptions);
+                context.HttpContext.Response.Cookies.Append("redirect_url",  redirectUrl,   secureCookieOptions);
             }
             else
             {
-                context.ProtocolMessage.State = $"returnUrl=={redirect_url}";
+                // Di development: simpan redirect URL di state parameter
+                context.ProtocolMessage.State = $"returnUrl=={redirectUrl}";
             }
 
             context.ProtocolMessage.RedirectUri = configuration["Auth:RedirectURI"];
             return Task.CompletedTask;
         },
+
+        // Dipanggil jika autentikasi gagal (misal: token expired)
         OnAuthenticationFailed = async context =>
         {
-            // Check if the token is expired
-            if (context.Response.StatusCode == 401)
+            if (context.Response.StatusCode != 401) return;
+
+            string refreshToken = context.HttpContext.Request.Cookies["refresh_token"];
+
+            if (!string.IsNullOrEmpty(refreshToken))
             {
-                var refreshToken = context.HttpContext.Request.Cookies["refresh_token"];
+                var tokenService = context.HttpContext.RequestServices.GetService<ITokenService>();
+                bool isRefreshed = await tokenService.RefreshAccessToken(refreshToken, context.HttpContext);
 
-                if (!string.IsNullOrEmpty(refreshToken))
+                if (isRefreshed)
                 {
-                    var tokenService = context.HttpContext.RequestServices.GetService<ITokenService>();
-                    // Attempt to refresh the access token using the refresh token
-                    var isTokenRefreshed = await tokenService.RefreshAccessToken(refreshToken, context.HttpContext);
-
-                    if (isTokenRefreshed)
-                    {
-                        // Optionally re-execute the request or redirect
-                        context.HandleResponse(); // Prevent the default 401 handling
-                        context.Response.Redirect(context.Request.Path); // Redirect to the original request path
-                    }
-                    else
-                    {
-                        // Handle refresh token failure (e.g., redirect to login or show an error)
-                        context.Response.Redirect("/Account/Login/ABC"); // Redirect to login page
-                    }
+                    // Refresh berhasil → coba akses halaman aslinya lagi
+                    context.HandleResponse();
+                    context.Response.Redirect(context.Request.Path);
                 }
                 else
                 {
-                    // No refresh token available, redirect to login
-                    context.Response.Redirect("/Account/Login/CDA");
+                    // Refresh gagal → arahkan ke halaman login
+                    context.Response.Redirect("/Account/Login/ABC");
                 }
             }
-            //return Task.CompletedTask;
+            else
+            {
+                // Tidak ada refresh token → arahkan ke login
+                context.Response.Redirect("/Account/Login/CDA");
+            }
         }
     };
 });
 
-
+// ===================================================================
+// OTORISASI: Policy berbasis level user
+// ===================================================================
 builder.Services.AddAuthorization(options =>
 {
-    //options.AddPolicy("RequireAudit", policy => policy.RequireAssertion(context =>
-    //                context.User.HasClaim("p1f_headcount_level", "quality") || context.User.HasClaim("p1f_headcount_level", "warehouse")));
+    // Policy "UserLevel": izinkan akses jika user memiliki setidaknya satu level yang diperbolehkan
     options.AddPolicy("UserLevel", policy => policy.RequireAssertion(context =>
     {
-        // Ambil claim level
-        var levelClaim = context.User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-
+        string levelClaim = context.User.FindFirst("P1F_TPM360_HUB_level")?.Value;
         if (string.IsNullOrEmpty(levelClaim)) return false;
 
-        // Pecah string berdasarkan titik koma menjadi list
-        var userLevels = levelClaim.Split(';');
+        string[] userLevels    = levelClaim.Split(';');
+        string[] allowedLevels = { "mat", "mat_admin", "cm_admin", "cm_user", "superadmin" };
 
-        // Daftar level yang diizinkan
-        var allowedLevels = new[] { "mat", "mat_admin", "cm_admin", "cm_user", "superadmin" };
-
-        // Cek apakah ada salah satu level user yang terdaftar di allowedLevels
         return userLevels.Any(l => allowedLevels.Contains(l));
     }));
 });
 
-//builder.Services.ConfigureApplicationCookie(options =>
-//{
-//    options.AccessDeniedPath = "/TEST";
-//});
-// END OPENID CONNECT
-
-builder.Services.AddSingleton<FileManagementService>();
-builder.Services.AddSingleton<ExcelServiceProvider>();
-builder.Services.AddSingleton<ImportExportFactory>();
-
-// Add services to the container.
+// ===================================================================
+// REGISTRASI SERVICE
+// ===================================================================
+builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 builder.Services.AddControllersWithViews();
 builder.Services.AddMvc();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 
+builder.Services.AddTransient<ITokenService, TokenService>();
+builder.Services.AddSingleton<FileManagementService>();
+builder.Services.AddSingleton<ExcelServiceProvider>();
+builder.Services.AddScoped<ImportExportFactory>();
+builder.Services.AddScoped<DatabaseAccessLayer>();
 
+// ===================================================================
+// PIPELINE: Middleware
+// ===================================================================
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseHsts(); // HTTP Strict Transport Security (default 30 hari)
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
-app.UseAuthentication(); //new
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
+// Middleware: redirect 403 Forbidden ke halaman utama
 app.Use(async (context, next) =>
 {
-    // Call the next middleware in the pipeline
     await next();
-
-    // If the response status is 403 Forbidden
     if (context.Response.StatusCode == StatusCodes.Status403Forbidden)
-    {
-        // Redirect to the Access Denied page
         context.Response.Redirect("/");
-    }
 });
 
+// Route default: Home/Index
 app.MapControllerRoute(
-    name: "default",
+    name:    "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

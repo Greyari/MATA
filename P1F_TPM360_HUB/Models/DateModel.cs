@@ -6,8 +6,8 @@ namespace P1F_TPM360_HUB.Models
 {
     public class DateModel
     {
-        public string FromDate { get; set; }
-        public string CurrentDate { get; set; }
+        public string FromDate { get; set; } = string.Empty;
+        public string CurrentDate { get; set; } = string.Empty;
 
 
     }

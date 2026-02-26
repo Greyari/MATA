@@ -4,9 +4,9 @@
     {
         public int SuccessCount { get; set; }
         public int ErrorCount { get; set; }
-        public string OrderId { get; set; }
+        public string OrderId { get; set; } = string.Empty;
 
-        public string Msg { get; set; } 
-        public string DetailMsg { get; set; } 
+        public string Msg { get; set; } = string.Empty;
+        public string DetailMsg { get; set; } = string.Empty;
     }
 }
