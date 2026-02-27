@@ -48,8 +48,6 @@
             <!-- LEFT PANEL — Branding -->
             <div class="login-panel login-panel--left">
                 <div class="panel-inner">
-                    <img src="~/assets/tpm-icon.png" alt="TPM360 Logo" class="brand-logo">
-
                     <div class="brand-tagline">
                         <p class="tagline-title">Machine Abnormality<br>Tracking Application</p>
                         <p class="tagline-sub">Schneider Electric Philippines</p>
@@ -225,7 +223,7 @@
         body.login-bg {
             font-family: var(--font-body);
             background:
-                linear-gradient(160deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.30) 100%),
+                linear-gradient(160deg, rgba(0,0,0,.75) 0%, rgba(0,0,0,.55) 100%),
                 url('@Url.Content("~/images/background/maintenance.jpg")') no-repeat center center / cover fixed;
             min-height: 100vh;
             display: flex;
@@ -266,7 +264,9 @@
 
         /* LEFT — dark branded panel */
         .login-panel--left {
-            background: linear-gradient(145deg, var(--se-darker) 0%, var(--se-dark) 100%);
+            background:
+                linear-gradient(145deg, rgba(17,25,33,.75) 0%, rgba(26,35,50,.70) 100%),
+                url('@Url.Content("~/images/background/bg-sere.jpg")') no-repeat center center / cover;
             color: #fff;
         }
 
