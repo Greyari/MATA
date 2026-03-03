@@ -43,6 +43,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme          = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
+
 .AddCookie(options =>
 {
     options.Cookie.Name           = "ping";
@@ -51,6 +52,7 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.HttpOnly       = true;                        // Tidak bisa diakses JavaScript
     options.SlidingExpiration     = true;                        // Perpanjang session jika aktif
 })
+
 .AddOpenIdConnect(options =>
 {
     options.ClientId     = configuration["Auth:ClientId"];

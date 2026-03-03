@@ -14,17 +14,17 @@ namespace P1F_TPM360_HUB.Controllers
         // ===================================================================
         // DEPENDENCY INJECTION
         // ===================================================================
-        private readonly ILogger<HomeController> _logger;
-        private readonly IConfiguration _configuration;
+        // private readonly ILogger<HomeController> _logger;
+        // private readonly IConfiguration _configuration;
         private readonly DatabaseAccessLayer _db;
 
         public HomeController(
-            ILogger<HomeController> logger,
-            IConfiguration configuration,
+            // ILogger<HomeController> logger,
+            // IConfiguration configuration,
             DatabaseAccessLayer db)
         {
-            _logger = logger;
-            _configuration = configuration;
+            // _logger = logger;
+            // _configuration = configuration;
             _db = db;
         }
 
