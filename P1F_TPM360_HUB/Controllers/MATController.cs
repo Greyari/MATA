@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using P1F_TPM360_HUB.Function;
 using P1F_TPM360_HUB.Models;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using System.Dynamic;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace P1F_TPM360_HUB.Controllers
 {
@@ -35,32 +35,14 @@ namespace P1F_TPM360_HUB.Controllers
         // HALAMAN UTAMA
         // ===================================================================
 
-        public IActionResult Index()
-        {
-            return RedirectToAction("Observation");
-        }
-
-        public IActionResult TRD()
-        {
-            return View();
-        }
-
         /// <summary>
         /// Halaman Observation (form input abnormality).
         /// Hanya bisa diakses oleh user dengan level mat, mat_admin, atau superadmin.
         /// Data dropdown (facility, line, station, dll.) disiapkan via ViewBag.
         /// </summary>
+        [Authorize(Policy = "UserLevel")]
         public IActionResult Observation()
         {
-            string userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-
-            // Cek akses
-            if (string.IsNullOrEmpty(userLevel) ||
-                (!userLevel.Contains("mat") && !userLevel.Contains("mat_admin") && !userLevel.Contains("superadmin")))
-            {
-                return RedirectToAction("Index", "Login");
-            }
-
             // Siapkan data dropdown untuk form
             ViewBag.Facility     = GetFacility();
             ViewBag.Line         = GetLine();

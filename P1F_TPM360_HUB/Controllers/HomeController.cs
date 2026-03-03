@@ -42,40 +42,6 @@ namespace P1F_TPM360_HUB.Controllers
         // ===================================================================
 
         /// <summary>
-        /// Dipanggil setelah SSO berhasil.
-        /// Memeriksa level akses user, lalu mengarahkan ke halaman yang sesuai.
-        /// </summary>
-        [Authorize]
-        public async Task<IActionResult> Login()
-        {
-            string name  = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
-            string level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-
-            // Jika claim belum ada, arahkan ke proses autentikasi SSO dulu
-            if (name == null || level == null)
-                return RedirectToAction("Index", "Auth");
-
-            // Jika user tidak punya akses
-            if (level == "no_access")
-            {
-                // Hapus claim level agar tidak tersimpan sebagai 'no_access'
-                var claimsIdentity = (ClaimsIdentity)User.Identity;
-                var existingLevel  = claimsIdentity?.FindFirst("P1F_TPM360_HUB_level");
-                if (existingLevel != null)
-                    claimsIdentity.RemoveClaim(existingLevel);
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity));
-
-                TempData["MessageSSO"] = "You don't have access, <br> Please contact admin for support.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            return RedirectToAction("Open", "Home");
-        }
-
-        /// <summary>
         /// Endpoint untuk akses dari luar (scan QR, link email, dll).
         /// Menyimpan order_id ke cookie sementara, lalu arahkan ke login.
         /// Cookie berlaku selama 5 menit.
@@ -114,10 +80,7 @@ namespace P1F_TPM360_HUB.Controllers
             string[] levels  = userLevel.Split(';');
 
             if (levels.Contains("mat_admin") || levels.Contains("mat") || levels.Contains("superadmin"))
-                return RedirectToAction("Dash", "Admin");
-
-            if (levels.Contains("cm_admin") || levels.Contains("cm_user"))
-                return RedirectToAction("Dash", "Admin");
+                return RedirectToAction("Observation", "Mat");
 
             return RedirectToAction("Index", "Home");
         }
@@ -132,7 +95,7 @@ namespace P1F_TPM360_HUB.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LoginManual(LoginModel user)
+        public async Task<IActionResult> Login(LoginModel user)
         {
             if (!ModelState.IsValid)
                 return View("Index");
