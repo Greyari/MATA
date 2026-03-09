@@ -56,11 +56,18 @@ namespace P1F_TPM360_HUB.Controllers
             string firstName = User.FindFirst("firstName")?.Value;
             string lastName  = User.FindFirst("lastName")?.Value;
             string fullName  = $"{firstName} {lastName}";
+            string email = User.FindFirst("email")?.Value;
 
             var claimsIdentity = (ClaimsIdentity)User.Identity;
 
             // Hapus claim lama agar tidak duplikat
-            foreach (var claimType in new[] { "P1F_TPM360_HUB_name", "P1F_TPM360_HUB_level", "P1F_TPM360_HUB_role", "P1F_TPM360_HUB_lines" })
+            foreach (var claimType in new[] { 
+                "P1F_TPM360_HUB_name", 
+                "P1F_TPM360_HUB_level", 
+                "P1F_TPM360_HUB_role", 
+                "P1F_TPM360_HUB_lines",
+                "P1F_TPM360_HUB_email"
+                })
             {
                 var existingClaim = claimsIdentity?.FindFirst(claimType);
                 if (existingClaim != null)
@@ -69,6 +76,10 @@ namespace P1F_TPM360_HUB.Controllers
 
             // Tambahkan claim nama
             claimsIdentity.AddClaim(new Claim("P1F_TPM360_HUB_name", fullName));
+            if (!string.IsNullOrEmpty(email))
+            {
+                claimsIdentity.AddClaim(new Claim("P1F_TPM360_HUB_email", email));
+            }
 
             // Ambil detail user dari database (level, role, lines)
             List<UserDetailModel> userDetail = _db.GetUserDetail(sesaId);

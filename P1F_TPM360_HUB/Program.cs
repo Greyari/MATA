@@ -61,6 +61,7 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = "code";
     options.Scope.Add("openid");
     options.Scope.Add("profile");
+    options.Scope.Add("email");
     options.CallbackPath = new PathString(configuration["Auth:CallbackPath"]);
     options.SaveTokens   = true;
 
@@ -170,7 +171,6 @@ builder.Services.AddAuthorization(options =>
 // REGISTRASI SERVICE
 // ===================================================================
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
-builder.Services.AddControllersWithViews();
 builder.Services.AddMvc();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();

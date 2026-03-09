@@ -5,14 +5,10 @@
 @{
     string url = ViewContext.HttpContext.Request.Path;
     string lastSegment = url.Split('/').Last();
-
     string user_level = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-    string user_role = User.FindFirst("P1F_TPM360_HUB_role")?.Value;
     string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     string name = User.FindFirst("P1F_TPM360_HUB_name")?.Value;
     var userLevels = user_level?.Split(';') ?? new string[0];
-    var userRoles = user_role?.Split(';') ?? new string[0];
-
 }
 @{
     var isChangePasswordPage = ViewContext.RouteData.Values["action"].ToString() == "ChangePassword";
@@ -23,7 +19,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TPM360 HUB</title>
+    <title>MATA</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico">
 
     <!-- Core Libraries -->
@@ -52,79 +48,21 @@
 
 
 </head>
-<body class="sidebar-mini layout-fixed layout-navbar-fixed" style="padding: 0 !important; margin: 0 !important;">
+<body class="sidebar-mini layout-fixed" style="padding: 0 !important; margin: 0 !important;">
     <div class="wrapper">
-        <!-- Navbar-->
-        <nav class="main-header navbar navbar-expand border-bottom navbar-light bg-light">
-            <ul class="navbar-nav ml-3">
-                <li class="nav-item mr-2">
-                    <a class="nav-link" data-widget="pushmenu" href="#">
-                        <i class="fa fa-bars" aria-hidden="true"></i>
-                    </a>
-                </li>
-                <li class="nav-item mx-auto">
-                    @* <img src="~/images/logo/sembsere.svg" alt="Logo" class="nav-logo"> *@
-                    <div class="logo-text">
-                        @* <span class="p1f">TPM360 </span> *@
-                        <span class="headcount">TPM360 HUB</span>
-                    </div>
-                </li>
-            </ul>
-
-            <div class="ml-auto d-flex align-items-center">
-
-                <div class="dropdown me-2">
-                    <div class="d-flex align-items-center" data-toggle="dropdown" aria-expanded="false" style="cursor:pointer;" role="button">
-                        <div class="me-2 text-end">
-                            <span class="text-muted d-block" style="font-size: 0.9em;">@name</span>
-                            <small class="text-muted d-block" style="font-size: 0.8em;">@sesa_id</small>
-                        </div>
-                        <div class="image">
-                            <img src="@Url.Content("~/assets/header.png")"
-                                 class="img-circle bg-white"
-                                 alt="User Image"
-                                 style="width:40px; height:40px; object-fit:cover;">
-                        </div>
-                    </div>
-
-                    <ul class="dropdown-menu dropdown-menu-end mt-2">
-                        <li class="px-3 py-2">
-                            @* <span class="d-block" style="font-size: 0.9em;">@plant</span> *@
-                            <span class="text-muted d-block" style="font-size: 0.9em;">Level: @user_level</span>
-                        </li>
-
-                        <li><hr class="dropdown-divider"></li>
-
-                        <li>
-                            <a href="@Url.Action("ChangePassword", "Admin")" class="dropdown-item d-flex align-items-center">
-                                <i class="fas fa-key me-2"></i>
-                                Change Password
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href="@Url.Action("Logout", "Home")" class="dropdown-item d-flex align-items-center">
-                                <i class="fas fa-sign-out-alt me-2"></i>
-                                Log Out
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-        <!-- End Navbar-->
 
         <!-- Sidebar -->
         <aside class="main-sidebar sidebar-dark-success elevation-5">
-            <a href="@Url.Action("Dash", "Admin")" class="brand-link text-center">
+            <!-- Tombol toggle sidebar -->
+            <a href="#" data-widget="pushmenu" class="brand-link text-center" role="button">
                 <img id="sidebar-brand-img"
-                     src="@Url.Content("~/assets/logos.png")"
-                     alt="Schneider Logo"
-                     style="opacity: .8; transition: all 0.3s ease; max-height: 35px;">
+                    src="@Url.Content("~/assets/logos.png")"
+                    alt="Schneider Logo"
+                    style="opacity: .8; transition: all 0.3s ease; max-height: 35px; cursor: pointer;">
             </a>
 
-            <div class="sidebar">
-                <nav class="mt-3">
+            <div class="sidebar d-flex flex-column" style="height: calc(100% - 57px);">
+                <nav class="mt-3 flex-grow-1 overflow-auto">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
                         @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin") || userLevels.Contains("mat"))
                         {
@@ -166,21 +104,35 @@
                                 <p>Change Password</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="@Url.Action("Logout", "Home")" class="nav-link">
-                                <i class="nav-icon fas fa-sign-out-alt"></i>
-                                <p>Sign Out</p>
-                            </a>
-                        </li>
                     </ul>
                 </nav>
+                
+                <!-- User Info Card -->
+                <div class="sidebar-user-card p-2 d-flex align-items-center justify-content-between rounded mt-auto">
+                    <div class="d-flex align-items-center gap-2" style="overflow:hidden;">
+                        <div class="sidebar-user-avatar pr-2">
+                            <i class="fas fa-user-circle fa-2x text-white"></i>
+                        </div>
+                        <div class="sidebar-user-info" style="overflow:hidden; line-height:1.3;">
+                            <span class="d-block text-white text-truncate" style="font-size:0.78em; font-weight:600;">@name</span>
+                            <span class="d-block text-white-50 text-truncate" style="font-size:0.70em;">@sesa_id</span>
+                        </div>
+                    </div>
+                    <a href="#" id="btn-logout" class="text-white ms-2" title="Logout" style="flex-shrink:0;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
             </div>
         </aside>
         <!-- End Sidebar -->
 
         <div class="content-wrapper">
+
+            <!-- Content -->
             @RenderBody()
+            
         </div>
+
         <footer class="main-footer">
             <strong>Copyright &copy; 2025 <a class="text-success" href="http://se.com">Schneider Electric</a>.</strong>
             All rights reserved.
@@ -292,6 +244,24 @@
             $(this).removeClass('sidebar-open');
         });
 
+        $('#btn-logout').on('click', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Konfirmasi Logout',
+                text: 'Apakah Anda yakin ingin keluar?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Ya, Logout',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '@Url.Action("Logout", "Home")';
+                }
+            });
+        });
     </script>
     @RenderSection("Scripts", required: false)
 </body>
@@ -370,5 +340,62 @@
         font-weight: 700;
         line-height: 1;
     }
+    .sidebar-user-card {
+        background-color: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        position: fixed;
+        bottom: 8px;
+        left: 8px;
+        width: calc(250px - 16px);
+        z-index: 1050;
+        /* Tambah transisi width agar smooth saat collapse */
+        transition: width 0.3s ease, background 0.2s;
+        overflow: hidden; /* penting agar konten tidak meluber saat menyempit */
+    }
 
+    .sidebar-user-card:hover {
+        background-color: rgba(255, 255, 255, 0.13);
+    }
+
+    /* Saat sidebar collapse — persempit card */
+    .sidebar-collapse:not(.sidebar-open) .sidebar-user-card {
+        width: calc(4.6rem - 16px);
+    }
+
+    /* Sembunyikan teks & icon logout saat collapse */
+    .sidebar-collapse:not(.sidebar-open) .sidebar-user-info,
+    .sidebar-collapse:not(.sidebar-open) #btn-logout {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+        transition: opacity 0.2s ease, width 0.2s ease;
+        pointer-events: none;
+    }
+
+    .sidebar-user-info,
+    #btn-logout {
+        opacity: 1;
+        transition: opacity 0.3s ease, width 0.3s ease;
+    }
+
+    /* Saat hover sidebar (mini preview) */
+    .sidebar-open .sidebar-user-card {
+        width: calc(250px - 16px) !important;
+    }
+
+    .sidebar-open .sidebar-user-info,
+    .sidebar-open #btn-logout {
+        opacity: 1 !important;
+        width: auto !important;
+        pointer-events: auto !important;
+    }
+
+    .sidebar .nav-sidebar {
+        padding-bottom: 70px;
+    }
+
+    #btn-logout:hover i {
+        color: #ff6b6b !important;
+        transition: color 0.2s;
+    }
 </style>
