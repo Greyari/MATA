@@ -6,11 +6,11 @@ using P1F_TPM360_HUB.Function;
 
 namespace P1F_TPM360_HUB.Controllers
 {
-    public class SettingsController : Controller
+    public class ChangePasswordController : Controller
     {
         private readonly DatabaseAccessLayer _db;
 
-        public SettingsController(DatabaseAccessLayer db)
+        public ChangePasswordController(DatabaseAccessLayer db)
         {
             _db = db;
         }
