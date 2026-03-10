@@ -1,15 +1,18 @@
-@model P1F_TPM360_HUB.Models.HeroHeaderViewModel
+@model (string Title, string Background)
 
-<section id="hero1" class="hero position-relative shadow-sm"
-         style="background-image: linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('@Model.Background');">
+<section
+    class="d-flex align-items-center justify-content-center position-relative text-center"
+    style="
+        min-height:80px;
+        background-image:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)), url('@Model.Background');
+        background-size:cover;
+        background-position:center top;
+        background-repeat:no-repeat;
+        z-index:1000;
+    ">
 
-    <div class="text-center">
-        <h3 class="text-white mb-0">
-            <b>@Model.Title</b>
-        </h3>
-    </div>
-
-    <div class="hero-tagline position-absolute top-50 end-0 translate-middle-y pe-3 text-end">
-    </div>
+    <h3 class="text-white m-0 fw-bold">
+        @Model.Title
+    </h3>
 
 </section>

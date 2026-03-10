@@ -39,15 +39,17 @@
 
 <body class="sidebar-mini layout-fixed layout-navbar-fixed sidebar-collapse">
     <div class="wrapper">
+        
+        <!-- HERO HEADER -->
+        <partial name="_HeroHeader" model='("User Management", "/images/background/bgusermanagement.jpeg")' />
+
         <div class="content">
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-lg-12 mt-3">
                         <div class="card">
                             <div class="card-body">
-                                <div class="text-center">
-                                    <h1><i class="nav-icon fas fa-users" style="color: #009530"></i> <strong>User Management</strong></h1>
-                                </div>
+
                                 <div class="text-center mt-3 mb-4">
                                     <button class="btn btn-primary btn-sm" onclick="addData()">
                                         <i class="fa fa-plus"></i> Add User
@@ -376,24 +378,6 @@
                     }
                 });
             }
-
-            // ACTION CREATE NEW
-            // $("#create_Data").click(function () {
-            //     const payload = {
-            //         sesa_id: $('#sesa_id2').val(),
-            //         name: $('#name2').val(),
-            //         password: $('#password').val(),
-            //         email: $('#email2').val(),
-            //         level: ($('#select_levelx').val() || []).join(';') + ';',
-            //         role: ($('#select_rolex').val() || []).join(';') + ';'
-            //     };
-
-            //     if (!payload.password) return Swal.fire('Error', 'Password is required', 'error');
-
-            //     $.post("@Url.Action("AddUser", "Admin")", payload, function () {
-            //         Swal.fire('Success', 'User Added', 'success').then(() => window.location.reload());
-            //     });
-            // });
 
             // ACTION CREATE NEW
             $("#create_Data").click(function () {

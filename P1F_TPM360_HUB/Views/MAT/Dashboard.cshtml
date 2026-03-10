@@ -4,18 +4,6 @@
     Layout = "~/Views/Shared/_LayoutMAT.cshtml";
 }
 
-@* untuk ambil hero header *@
-@using P1F_TPM360_HUB.Models
-@{
-    Layout = "~/Views/Shared/_LayoutMAT.cshtml";
-
-    var heroHeader = new P1F_TPM360_HUB.Models.HeroHeaderViewModel
-    {
-        Title = "MATA Dashboard",
-        Background = "/images/background/bg05.jpg"
-    };
-}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,16 +24,6 @@
            max-width: 95% !important;
        }
 
-        #hero1{
-            min-height:80px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            position:relative;
-            background-size:cover;
-            background-position:center top;
-            background-repeat:no-repeat;
-        }
         .responsive {
             height: 400px;
             /*//overflow: scroll;*/
@@ -90,8 +68,8 @@
 <body>
     <div class="wrapper">
 
-        @* untuk hero header tapi bisa gka dia di buat simpel kok jadinya lebih ribet *@
-        <partial name="_HeroHeader" model="heroHeader" />
+        <!-- HERO HEADER -->v
+        <partial name="_HeroHeader" model='("MATA Dashboard", "/images/background/bgdashboard.jpg")' />
 
         <div class="content pt-3">
             <div class="container-fluid">
