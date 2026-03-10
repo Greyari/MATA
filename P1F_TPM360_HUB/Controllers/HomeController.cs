@@ -138,6 +138,8 @@ namespace P1F_TPM360_HUB.Controllers
                 claimsIdentity.AddClaim(new Claim("P1F_TPM360_HUB_level", string.IsNullOrEmpty(userDb.level) ? "no_access" : userDb.level.ToLower()));
                 claimsIdentity.AddClaim(new Claim("P1F_TPM360_HUB_role",  userDb.role  ?? ""));
                 claimsIdentity.AddClaim(new Claim("P1F_TPM360_HUB_lines", userDb.lines ?? ""));
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Email,        userDb.email ?? "")); // ← tambah ini
+
 
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,

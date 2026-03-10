@@ -36,7 +36,8 @@
     <link href="~/lib/adminlte/plugins/chart.js/Chart.min.css" rel="stylesheet" />
     <link href="~/lib/adminlte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/custom-fonts.css" />
@@ -99,7 +100,7 @@
                         }
                         <li class="nav-header">Settings</li>
                         <li class="nav-item">
-                            <a href="@Url.Action("ChangePassword", "Admin")" class="nav-link @Html.IsActive("Admin", "ChangePassword")">
+                            <a href="@Url.Action("Index", "Settings")" class="nav-link @Html.IsActive("Admin", "ChangePassword")">
                                 <i class="nav-icon fas fa-key"></i>
                                 <p>Change Password</p>
                             </a>
