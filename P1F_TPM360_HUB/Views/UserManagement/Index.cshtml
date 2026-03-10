@@ -1,0 +1,362 @@
+﻿@{
+    Layout = "~/Views/Shared/_LayoutMAT.cshtml";
+}
+
+<div class="wrapper">
+    <div class="content">
+
+        <partial name="_HeroHeader" model='("User Management", "/images/background/bgusermanagement.jpeg")' />
+
+        <div class="container-fluid mt-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <!-- Tombol Aksi -->
+                    <div class="mb-3 text-center">
+                        <button class="btn btn-primary btn-sm" onclick="addData()">
+                            <i class="fas fa-plus"></i> Add User
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="btn_delete_selected">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="fw-bold small">Search</label>
+
+                            <div style="position: relative;">
+                                <i class="fas fa-search"
+                                style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: #aaa;"></i>
+                                <input type="text" id="search_input" class="form-control"
+                                    style="padding-left: 35px;"
+                                    placeholder="Search by name, SESA ID, role, or email..." />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabel -->
+                    <div class="table-responsive pt-1">
+                        <table class="table table-sm table-striped border" id="tbl_users">
+                            <thead>
+                                <tr class="text-center text-white" style="background-color: #3dcd58;">
+                                    <th><input type="checkbox" id="checkAll" onclick="toggle(this)" /> All</th>
+                                    <th>SESA ID</th>
+                                    <th>Name</th>
+                                    <th>Level</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table_body"></tbody>
+                        </table>
+                        <div id="spinner" class="text-center mt-2" style="display:none;">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit -->
+<div id="modal_edit" class="modal fade" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #3dcd58;">
+                <h5 class="text-white"><i class="fas fa-edit me-2"></i>Edit User</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_id" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fw-bold small">SESA ID*</label>
+                        <input type="text" id="edit_sesa_id" class="form-control form-control-sm" />
+
+                        <label class="fw-bold small mt-2">Name*</label>
+                        <input type="text" id="edit_name" class="form-control form-control-sm" />
+
+                        <label class="fw-bold small mt-2">Email*</label>
+                        <input type="text" id="edit_email" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold small">Level</label>
+                        <select class="form-control selectpicker" id="edit_level" multiple data-live-search="true">
+                            @foreach (var item in ViewBag.Levels)
+                            {
+                                <option value="@item.Code">@item.Code</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <button class="btn btn-success px-5" onclick="saveEdit()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Add -->
+<div id="modal_add" class="modal fade" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #3dcd58;">
+                <h5 class="text-white"><i class="fas fa-plus-circle me-2"></i>Add User</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="fw-bold small">SESA ID*</label>
+                        <input type="text" id="add_sesa_id" class="form-control form-control-sm" />
+
+                        <label class="fw-bold small mt-2">Name*</label>
+                        <input type="text" id="add_name" class="form-control form-control-sm" />
+
+                        <label class="fw-bold small mt-2">Password*</label>
+                        <input type="password" id="add_password" class="form-control form-control-sm" />
+
+                        <label class="fw-bold small mt-2">Email*</label>
+                        <input type="text" id="add_email" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold small">Level</label>
+                        <select class="form-control selectpicker" id="add_level" multiple data-live-search="true">
+                            @foreach (var item in ViewBag.Levels)
+                            {
+                                <option value="@item.Code">@item.Code</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <button class="btn btn-success px-5" onclick="submitAdd()">
+                        <i class="fas fa-pen"></i> Submit User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+
+    // ===== HELPER =====
+
+    function showSpinner(show) {
+        $('#spinner').toggle(show);
+    }
+
+    function toJoinedString(selector) {
+        return ($(selector).val() || []).join(';') + ';';
+    }
+
+    function toggle(source) {
+        $('.select_item').prop('checked', source.checked);
+    }
+
+    function addData() {
+        $('#modal_add').modal('show');
+    }
+
+    // ===== INISIALISASI =====
+
+    $(document).ready(function () {
+        // Auto load saat buka halaman
+        setTimeout(() => $('#btn_apply').click(), 300);
+
+        // Search juga bisa dengan tekan Enter
+        $('#search_input').on('keypress', function (e) {
+            if (e.key === 'Enter') $('#btn_apply').click();
+        });
+    });
+
+    $('#btn_apply').click(function () {
+        showSpinner(true);
+
+        $.ajax({
+            url: "@Url.Action("GETUSER")",
+            type: "POST",
+            data: { search: $('#search_input').val() },
+            success: function (data) {
+                if (isInitialized) $('#tbl_users').DataTable().destroy();
+                $('#table_body').html(data);
+                $('#tbl_users').DataTable({ dom: 'lrtpi', pagingType: 'numbers', searching: false });
+                isInitialized = true;
+            },
+            complete: () => showSpinner(false)
+        });
+    });
+
+    // ===== FILTER / LOAD DATA =====
+
+    let isInitialized = false;
+    let searchDelay;
+
+    function loadData() {
+        showSpinner(true);
+
+        $.ajax({
+            url: "@Url.Action("GETUSER")",
+            type: "POST",
+            data: { search: $('#search_input').val() },
+            success: function (data) {
+                if (isInitialized) $('#tbl_users').DataTable().destroy();
+                $('#table_body').html(data);
+                $('#tbl_users').DataTable({ dom: 'lrtpi', pagingType: 'numbers', searching: false });
+                isInitialized = true;
+            },
+            complete: () => showSpinner(false)
+        });
+    }
+
+    $(document).ready(function () {
+        // Auto load pertama kali
+        loadData();
+
+        // Ketik → tunggu 400ms → baru request
+        $('#search_input').on('keyup', function () {
+            clearTimeout(searchDelay);
+            searchDelay = setTimeout(loadData, 400);
+        });
+    });
+
+    // ===== EDIT USER =====
+
+    function btn_edit(id, sesa_id, name, level, email) {
+        $('#edit_id').val(id);
+        $('#edit_sesa_id').val(sesa_id);
+        $('#edit_name').val(name);
+        $('#edit_email').val(email);
+
+        $.get('@Url.Action("GetLevelEdit", "Admin")', { level }, (data) => $('#edit_level').selectpicker('val', data));
+
+        $('#modal_edit').modal('show');
+    }
+
+    function saveEdit() {
+        const payload = {
+            id_user: $('#edit_id').val(),
+            sesa_id: $('#edit_sesa_id').val(),
+            name:    $('#edit_name').val(),
+            email:   $('#edit_email').val(),
+            level:   toJoinedString('#edit_level'),
+        };
+
+        if (!payload.sesa_id || !payload.name)
+            return Swal.fire('Error', 'SESA ID and Name are required!', 'error');
+
+        Swal.fire({
+            title: 'Update User?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            confirmButtonText: 'Yes, update!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            showSpinner(true);
+
+            $.post("@Url.Action("UpdateUser", "Admin")", payload)
+                .done((res) => {
+                    showSpinner(false);
+                    res.success
+                        ? Swal.fire('Updated!', res.message, 'success').then(() => location.reload())
+                        : Swal.fire('Error!', res.message, 'error');
+                })
+                .fail(() => { showSpinner(false); Swal.fire('Error!', 'Server connection failed', 'error'); });
+        });
+    }
+
+    // ===== ADD USER =====
+
+    function submitAdd() {
+        const payload = {
+            sesa_id:  $('#add_sesa_id').val(),
+            name:     $('#add_name').val(),
+            password: $('#add_password').val(),
+            email:    $('#add_email').val(),
+            level:    toJoinedString('#add_level'),
+        };
+
+        if (!payload.sesa_id || !payload.name || !payload.password)
+            return Swal.fire('Error', 'SESA ID, Name, and Password are required!', 'error');
+
+        showSpinner(true);
+
+        $.post("@Url.Action("AddUser", "Admin")", payload)
+            .done((res) => {
+                showSpinner(false);
+                res.success
+                    ? Swal.fire('Success', res.message, 'success').then(() => location.reload())
+                    : Swal.fire('Error', res.message, 'error');
+            })
+            .fail(() => { showSpinner(false); Swal.fire('Error', 'Server error', 'error'); });
+    }
+
+    // ===== DELETE SINGLE =====
+
+    function btn_delete(id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            showSpinner(true);
+
+            $.post("@Url.Action("DeleteUser", "Admin")", { id })
+                .done((res) => {
+                    showSpinner(false);
+                    res.success
+                        ? Swal.fire('Deleted!', res.message, 'success').then(() => location.reload())
+                        : Swal.fire('Error!', res.message, 'error');
+                })
+                .fail(() => { showSpinner(false); Swal.fire('Error!', 'Server connection failed', 'error'); });
+        });
+    }
+
+    // ===== DELETE MULTIPLE =====
+
+    $('#btn_delete_selected').click(function () {
+        const ids = $('.select_item:checked').map((_, el) => el.value).get();
+
+        if (ids.length === 0)
+            return Swal.fire('Info', 'Please select at least one user', 'info');
+
+        Swal.fire({
+            title: `Delete ${ids.length} user(s)?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            showSpinner(true);
+
+            $.post("@Url.Action("DeleteMultipleUser", "Admin")", { ids })
+                .done((res) => {
+                    showSpinner(false);
+                    res.success
+                        ? Swal.fire('Deleted!', res.message, 'success').then(() => location.reload())
+                        : Swal.fire('Error!', res.message, 'error');
+                })
+                .fail(() => { showSpinner(false); Swal.fire('Error!', 'Server connection failed', 'error'); });
+        });
+    });
+
+</script>
+}

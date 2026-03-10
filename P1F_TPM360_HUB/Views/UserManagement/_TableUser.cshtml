@@ -8,10 +8,9 @@
         <td class="align-middle text-center border-right">@item.sesa_id</td>
         <td class="align-middle text-center border-right">@item.name</td>
         <td class="align-middle text-center border-right">@item.level</td>
-        <td class="align-middle text-center border-right">@item.role</td>
         <td class="align-middle text-center border-right">@item.email</td>
         <td class="align-middle text-center">
-            <button class="btn btn-success btn-sm" style="width:3rem;" onclick="btn_edit(`@item.id_user`,`@item.sesa_id`, `@item.name`, `@item.level`, `@item.role`, `@item.email`)"><i class="fas fa-edit"></i> </button>
+            <button class="btn btn-success btn-sm" style="width:3rem;" onclick="btn_edit(`@item.id_user`,`@item.sesa_id`, `@item.name`, `@item.level`, `@item.email`)"><i class="fas fa-edit"></i> </button>
             <button class="btn btn-danger btn-sm" style="width:3rem;" onclick="btn_delete('@item.id_user')"><i class="fas fa-trash"></i></button>
         </td>
 

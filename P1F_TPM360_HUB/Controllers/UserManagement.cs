@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace P1F_TPM360_HUB.Controllers
 {
-    public class AdminController : Controller
+    public class UserManagement : Controller
     {
         // ===================================================================
         // DEPENDENCY INJECTION
@@ -17,10 +17,10 @@ namespace P1F_TPM360_HUB.Controllers
         private readonly ApplicationDbContext _context;
         private readonly DatabaseAccessLayer _db;
 
-        public AdminController(
+        public UserManagement(
             ApplicationDbContext context,
             ImportExportFactory importExportFactory,
-            ILogger<AdminController> logger,
+            ILogger<UserManagement> logger,
             DatabaseAccessLayer db)
         {
             _context = context;
@@ -41,7 +41,7 @@ namespace P1F_TPM360_HUB.Controllers
         /// Menampilkan halaman User Management.
         /// Hanya bisa diakses jika user sudah login (sesa_id tidak null).
         /// </summary>
-        public IActionResult UserManagement()
+        public IActionResult Index()
         {
             string? sesaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -49,7 +49,6 @@ namespace P1F_TPM360_HUB.Controllers
                 return RedirectToAction("Index", "Login");
 
             ViewBag.Levels = _db.GetLevel();
-            ViewBag.Roles = _db.GetRole();
             return View();
         }
 
@@ -62,7 +61,7 @@ namespace P1F_TPM360_HUB.Controllers
         /// Password akan di-hash menggunakan MD5 sebelum disimpan.
         /// </summary>
         [HttpPost]
-        public JsonResult AddUser(string sesa_id, string name, string password, string email, string level, string role)
+        public JsonResult AddUser(string sesa_id, string name, string password, string email, string level)
         {
             try
             {
@@ -70,8 +69,8 @@ namespace P1F_TPM360_HUB.Controllers
                 var auth = new Authentication();
                 string hashedPassword = auth.MD5Hash(password);
 
-                string query = @"INSERT INTO mst_users (sesa_id, name, password, email, level, role, record_date) 
-                                 VALUES (@sesa_id, @name, @password, @email, @level, @role, GETDATE())";
+                string query = @"INSERT INTO mst_users (sesa_id, name, password, email, level, record_date) 
+                                 VALUES (@sesa_id, @name, @password, @email, @level, GETDATE())";
 
                 using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
                 using (SqlCommand cmd = new SqlCommand(query, conn))
@@ -81,7 +80,6 @@ namespace P1F_TPM360_HUB.Controllers
                     cmd.Parameters.AddWithValue("@password",  hashedPassword);
                     cmd.Parameters.AddWithValue("@email",     email    ?? (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@level",     level    ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@role",      role     ?? (object)DBNull.Value);
 
                     conn.Open();
                     int rowsAffected = cmd.ExecuteNonQuery();
@@ -101,7 +99,7 @@ namespace P1F_TPM360_HUB.Controllers
         /// Mengupdate data user yang sudah ada berdasarkan id_user.
         /// </summary>
         [HttpPost]
-        public JsonResult UpdateUser(int id_user, string sesa_id, string name, string email, string level, string role)
+        public JsonResult UpdateUser(int id_user, string sesa_id, string name, string email, string level)
         {
             try
             {
@@ -110,7 +108,6 @@ namespace P1F_TPM360_HUB.Controllers
                                      name        = @name, 
                                      email       = @email, 
                                      level       = @level, 
-                                     role        = @role,
                                      record_date = GETDATE()
                                  WHERE id_user = @id_user";
 
@@ -122,7 +119,6 @@ namespace P1F_TPM360_HUB.Controllers
                     cmd.Parameters.AddWithValue("@name",     name    ?? (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@email",    email   ?? (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@level",    level   ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@role",     role    ?? (object)DBNull.Value);
 
                     conn.Open();
                     int rowsAffected = cmd.ExecuteNonQuery();
@@ -172,35 +168,39 @@ namespace P1F_TPM360_HUB.Controllers
         // ===================================================================
 
         /// <summary>
-        /// Mengambil data user menggunakan stored procedure GET_SESA.
-        /// Filter: sesa_id, level, name (null = semua data).
-        /// Mengembalikan Partial View tabel user.
+        /// Mengambil data user dengan satu keyword pencarian.
+        /// Bisa cari berdasarkan name, sesa_id, atau email sekaligus.
         /// </summary>
-        public IActionResult GETUSER(string sesa_id, string level, string name)
+        public IActionResult GETUSER(string search)
         {
             var userList = new List<UserModel>();
+            string keyword = string.IsNullOrWhiteSpace(search) ? "" : search.Trim();
+
+            string query = @"SELECT id_user, sesa_id, name, level, email 
+                            FROM mst_users
+                            WHERE (@keyword = ''
+                                    OR sesa_id LIKE '%' + @keyword + '%'
+                                    OR name    LIKE '%' + @keyword + '%'
+                                    OR email   LIKE '%' + @keyword + '%')
+                            ORDER BY name ASC";
 
             using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand("GET_SESA", conn))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@sesa_id", sesa_id != null ? (object)sesa_id : DBNull.Value);
-                cmd.Parameters.AddWithValue("@level",   level   != null ? (object)level   : DBNull.Value);
-                cmd.Parameters.AddWithValue("@name",    name    != null ? (object)name    : DBNull.Value);
-
+                cmd.Parameters.AddWithValue("@keyword", keyword);
                 conn.Open();
+
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         userList.Add(new UserModel
                         {
-                            id_user  = reader["id_user"].ToString(),
-                            sesa_id  = reader["sesa_id"].ToString(),
-                            name     = reader["name"].ToString(),
-                            level    = reader["level"].ToString(),
-                            role     = reader["role"].ToString(),
-                            email    = reader["email"].ToString()
+                            id_user = reader["id_user"].ToString(),
+                            sesa_id = reader["sesa_id"].ToString(),
+                            name    = reader["name"].ToString(),
+                            level   = reader["level"].ToString(),
+                            email   = reader["email"].ToString()
                         });
                     }
                 }
@@ -209,113 +209,9 @@ namespace P1F_TPM360_HUB.Controllers
             return PartialView("_TableUser", userList);
         }
 
-        /// <summary>
-        /// Autocomplete: mencari sesa_id yang mengandung kata kunci 'family'.
-        /// </summary>
-        [HttpGet]
-        public IActionResult GetUserSesa0(string family)
-        {
-            var data = new List<UserModel>();
-            string query = "SELECT DISTINCT sesa_id FROM mst_users WHERE sesa_id LIKE '%" + family + "%' ORDER BY sesa_id ASC";
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
-            {
-                conn.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        data.Add(new UserModel
-                        {
-                            Text = reader["sesa_id"].ToString(),
-                            Id   = reader["sesa_id"].ToString()
-                        });
-                    }
-                }
-            }
-
-            return Json(new { items = data });
-        }
-
-        /// <summary>
-        /// Autocomplete: mencari name user yang mengandung kata kunci 'family'.
-        /// </summary>
-        [HttpGet]
-        public IActionResult GetUserName0(string family)
-        {
-            var data = new List<UserModel>();
-            string query = "SELECT DISTINCT name FROM mst_users WHERE name LIKE '%" + family + "%' ORDER BY name ASC";
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
-            {
-                conn.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        data.Add(new UserModel
-                        {
-                            Text = reader["name"].ToString(),
-                            Id   = reader["name"].ToString()
-                        });
-                    }
-                }
-            }
-
-            return Json(new { items = data });
-        }
-
         // ===================================================================
-        // GET ROLE & LEVEL (untuk Edit Form)
+        // GET LEVEL (untuk Edit Form)
         // ===================================================================
-
-        /// <summary>
-        /// Mengambil daftar role yang sesuai dari database.
-        /// Input 'role' bisa berisi beberapa nilai dipisah titik koma (;).
-        /// </summary>
-        public JsonResult GetRoleEdit(string role)
-        {
-            var roleList = new List<string>();
-
-            // Jika kosong, langsung kembalikan list kosong
-            if (string.IsNullOrWhiteSpace(role))
-                return Json(roleList);
-
-            var roles = role.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(r => r.Trim())
-                            .ToList();
-
-            if (roles.Count == 0)
-                return Json(roleList);
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand())
-            {
-                conn.Open();
-                cmd.Connection = conn;
-
-                // Bangun parameter dinamis untuk klausa IN
-                var parameters = new List<string>();
-                for (int i = 0; i < roles.Count; i++)
-                {
-                    string paramName = $"@org{i}";
-                    parameters.Add(paramName);
-                    cmd.Parameters.AddWithValue(paramName, roles[i]);
-                }
-
-                cmd.CommandText = $"SELECT DISTINCT role FROM mst_role WHERE role IN ({string.Join(",", parameters)})";
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                        roleList.Add(reader["role"].ToString());
-                }
-            }
-
-            return Json(roleList);
-        }
 
         /// <summary>
         /// Mengambil daftar level yang sesuai dari database.
@@ -354,6 +250,33 @@ namespace P1F_TPM360_HUB.Controllers
             }
 
             return Json(levelList);
+        }
+
+        /// <summary>
+        /// Menghapus beberapa user sekaligus berdasarkan list id.
+        /// </summary>
+        [HttpPost]
+        public JsonResult DeleteMultipleUser(List<int> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return Json(new { success = false, message = "No users selected." });
+
+            try
+            {
+                string query = $"DELETE FROM mst_users WHERE id_user IN ({string.Join(",", ids)})";
+
+                using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    conn.Open();
+                    int rows = cmd.ExecuteNonQuery();
+                    return Json(new { success = true, message = $"{rows} user(s) deleted successfully." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
         }
     }
 }
