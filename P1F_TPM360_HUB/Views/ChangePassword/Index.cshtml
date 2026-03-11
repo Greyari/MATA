@@ -1,4 +1,4 @@
-@model P1F_TPM360_HUB.Models.ViewModels.UserSettingsViewModel
+@model P1F_TPM360_HUB.Models.ViewModels.ChangePasswordModel
 @{
     Layout = "~/Views/Shared/_LayoutMAT.cshtml";
 }
@@ -58,7 +58,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form asp-action="ChangePassword" asp-controller="Settings" method="post">
+                    <form asp-action="ChangePassword" asp-controller="ChangePassword" method="post">
                         @Html.AntiForgeryToken()
 
                         <div class="row mb-3 align-items-center">

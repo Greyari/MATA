@@ -71,7 +71,7 @@
                             @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin"))
                             {
                                 <li class="nav-item">
-                                    <a href="@Url.Action("Dashboard", "MAT")" class="nav-link @Html.IsActive("MAT", "Dashboard")">
+                                    <a href="@Url.Action("Index", "Dashboard")" class="nav-link @Html.IsActive("Dashboard", "Index")">
                                         <i class="nav-icon fa fa-line-chart"></i>
                                         <p>Dashboard</p>
                                     </a>
@@ -92,7 +92,7 @@
 
                             <li class="nav-header">Master Data</li>
                             <li class="nav-item">
-                                <a href="@Url.Action("Index", "UserManagement")" class="nav-link @Html.IsActive("Admin", "ChangePassword")">
+                                <a href="@Url.Action("Index", "UserManagement")" class="nav-link @Html.IsActive("UserManagement", "Index")">
                                     <i class="nav-icon fas fa-user"></i>
                                     <p>User Management</p>
                                 </a>
@@ -100,7 +100,7 @@
                         }
                         <li class="nav-header">Settings</li>
                         <li class="nav-item">
-                            <a href="@Url.Action("Index", "ChangePassword")" class="nav-link @Html.IsActive("Admin", "ChangePassword")">
+                            <a href="@Url.Action("Index", "ChangePassword")" class="nav-link @Html.IsActive("ChangePassword", "Index")">
                                 <i class="nav-icon fas fa-key"></i>
                                 <p>Change Password</p>
                             </a>

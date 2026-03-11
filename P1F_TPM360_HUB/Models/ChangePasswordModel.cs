@@ -1,6 +1,6 @@
 namespace P1F_TPM360_HUB.Models.ViewModels
 {
-    public class UserSettingsViewModel
+    public class ChangePasswordModel
     {
         public string Name { get; set; }
         public string Email { get; set; }

@@ -3,7 +3,6 @@ using P1F_TPM360_HUB.Function;
 using P1F_TPM360_HUB.Models;
 using System.Data;
 using Microsoft.Data.SqlClient;
-using System.Dynamic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
@@ -86,36 +85,42 @@ namespace P1F_TPM360_HUB.Controllers
             return list;
         }
 
+        /// <summary>Mengambil daftar Facility dari tabel mst_facility.</summary>
         private List<CodeNameModel> GetFacility()
             => GetMasterData("SELECT facility_id, facility FROM mst_facility ORDER BY facility_id ASC", "facility_id", "facility");
 
+        /// <summary>Mengambil daftar Line unik dari tabel mst_linestation.</summary>
         private List<CodeNameModel> GetLine()
             => GetMasterData("SELECT DISTINCT line_no FROM mst_linestation ORDER BY line_no ASC", "line_no");
 
+        /// <summary>Mengambil daftar Station dari tabel mst_station.</summary>
         private List<CodeNameModel> GetStation()
             => GetMasterData("SELECT station_id, station_name FROM mst_station ORDER BY station_id ASC", "station_id", "station_name");
 
+        /// <summary>Mengambil daftar TPM Tag dari tabel mst_tpm_tag.</summary>
         private List<CodeNameModel> GetTPMTag()
             => GetMasterData("SELECT tag_id, tag_dept FROM mst_tpm_tag ORDER BY tag_id ASC", "tag_id", "tag_dept");
 
+        /// <summary>Mengambil daftar Operator (SESA ID + nama) dari view V_OPERATOR.</summary>
         private List<CodeNameModel> GetSesaOP()
             => GetMasterData("SELECT sesa_id, employee_name FROM V_OPERATOR ORDER BY sesa_id ASC", "sesa_id", "employee_name");
 
+        /// <summary>Mengambil daftar tipe abnormality dari tabel mst_abn_type.</summary>
         private List<CodeNameModel> GetAbnType()
             => GetMasterData("SELECT abn_type_id, abn_type FROM mst_abn_type ORDER BY record_date ASC", "abn_type_id", "abn_type");
 
+        /// <summary>Mengambil daftar dampak jika abnormality dibiarkan dari tabel mst_abn_happen.</summary>
         private List<CodeNameModel> GetAbnHappen()
             => GetMasterData("SELECT abn_happen FROM mst_abn_happen ORDER BY record_date ASC", null, "abn_happen");
 
+        /// <summary>Mengambil daftar root cause abnormality dari tabel mst_abn_rootcause.</summary>
         private List<CodeNameModel> GetAbnRootCause()
             => GetMasterData("SELECT abn_rootcause_id, abn_rootcause FROM mst_abn_rootcause ORDER BY record_date ASC", "abn_rootcause_id", "abn_rootcause");
 
-        private List<CodeNameModel> GetLineDashboard()
-            => GetMasterData("SELECT DISTINCT line_no FROM mst_linestation ORDER BY line_no ASC", "line_no");
-
-        private List<CodeNameModel> GetStationDashboard()
-            => GetMasterData("SELECT DISTINCT station_no FROM mst_linestation ORDER BY station_no ASC", "station_no");
-
+        /// <summary>
+        /// Mengambil daftar Station berdasarkan Line yang dipilih.
+        /// Digunakan untuk dropdown dinamis (cascade) saat user memilih Line di form.
+        /// </summary>
         private List<CodeNameModel> GetStationLine(string lineNo)
             => GetMasterData(
                 "SELECT station_no FROM mst_linestation WHERE line_no = @line_no",
@@ -205,6 +210,37 @@ namespace P1F_TPM360_HUB.Controllers
         }
 
         // ===================================================================
+        // UTILITIES
+        // ===================================================================
+
+        /// <summary>
+        /// Mengambil range tanggal default (From/To) dari database via SP GetDateSO.
+        /// Digunakan untuk mengisi input date_from dan date_to saat halaman pertama kali dibuka.
+        /// </summary>
+        [HttpGet]
+        public JsonResult GetDateSO()
+        {
+            var date = new DateModel();
+
+            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
+            using (SqlCommand cmd = new SqlCommand("GetDateSO", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        date.FromDate    = reader["From_Date"].ToString();
+                        date.CurrentDate = reader["To_Date"].ToString();
+                    }
+                }
+            }
+
+            return Json(date);
+        }
+
+        // ===================================================================
         // DATA ABNORMALITY (ABN)
         // ===================================================================
 
@@ -236,8 +272,7 @@ namespace P1F_TPM360_HUB.Controllers
                         abnList.Add(new ABNModel
                         {
                             date_find      = reader["finding_date"] != DBNull.Value
-                                             ? ((DateTime)reader["finding_date"]).ToString("MMM dd, yyyy")
-                                             : "-",
+                                             ? ((DateTime)reader["finding_date"]).ToString("MMM dd, yyyy") : "-",
                             facility_id    = reader["facility_id"].ToString(),
                             facility       = reader["facility"].ToString(),
                             order_id       = reader["order_id"].ToString(),
@@ -287,28 +322,28 @@ namespace P1F_TPM360_HUB.Controllers
                     {
                         if (reader.Read())
                         {
-                            data.facility_id       = reader["facility_id"].ToString();
-                            data.facility          = reader["facility"].ToString();
-                            data.picture           = reader["picture_finding"].ToString();
-                            data.order_id          = reader["order_id"].ToString();
-                            data.abn_type          = reader["abn_type"].ToString();
-                            data.abn_type_id       = reader["abn_type_id"].ToString();
-                            data.abn_happen        = reader["abn_happen"].ToString();
-                            data.abn_rootcause     = reader["abn_rootcause"].ToString();
-                            data.abn_rootcause_id  = reader["abn_rootcause_id"].ToString();
-                            data.rootcause_analysis= reader["rootcause_analysis"].ToString();
-                            data.machine_part      = reader["machine_part"].ToString();
-                            data.am_checklist      = reader["am_checklist"].ToString();
-                            data.assigned_name     = reader["assigned_name"].ToString();
-                            data.corrective        = reader["corrective"].ToString();
-                            data.status_action     = reader["status_action"].ToString();
-                            data.image             = reader["image"].ToString();
-                            data.target_completion = reader["target_completion"] != DBNull.Value
-                                                     ? ((DateTime)reader["target_completion"]).ToString("yyyy-MM-dd") : "-";
-                            data.completed_date    = reader["completed_date"] != DBNull.Value
-                                                     ? ((DateTime)reader["completed_date"]).ToString("yyyy-MM-dd") : "-";
-                            data.date_find         = reader["finding_date"] != DBNull.Value
-                                                     ? ((DateTime)reader["finding_date"]).ToString("yyyy-MM-dd") : "-";
+                            data.facility_id        = reader["facility_id"].ToString();
+                            data.facility           = reader["facility"].ToString();
+                            data.picture            = reader["picture_finding"].ToString();
+                            data.order_id           = reader["order_id"].ToString();
+                            data.abn_type           = reader["abn_type"].ToString();
+                            data.abn_type_id        = reader["abn_type_id"].ToString();
+                            data.abn_happen         = reader["abn_happen"].ToString();
+                            data.abn_rootcause      = reader["abn_rootcause"].ToString();
+                            data.abn_rootcause_id   = reader["abn_rootcause_id"].ToString();
+                            data.rootcause_analysis = reader["rootcause_analysis"].ToString();
+                            data.machine_part       = reader["machine_part"].ToString();
+                            data.am_checklist       = reader["am_checklist"].ToString();
+                            data.assigned_name      = reader["assigned_name"].ToString();
+                            data.corrective         = reader["corrective"].ToString();
+                            data.status_action      = reader["status_action"].ToString();
+                            data.image              = reader["image"].ToString();
+                            data.target_completion  = reader["target_completion"] != DBNull.Value
+                                                      ? ((DateTime)reader["target_completion"]).ToString("yyyy-MM-dd") : "-";
+                            data.completed_date     = reader["completed_date"] != DBNull.Value
+                                                      ? ((DateTime)reader["completed_date"]).ToString("yyyy-MM-dd") : "-";
+                            data.date_find          = reader["finding_date"] != DBNull.Value
+                                                      ? ((DateTime)reader["finding_date"]).ToString("yyyy-MM-dd") : "-";
                         }
                     }
                 }
@@ -395,9 +430,9 @@ namespace P1F_TPM360_HUB.Controllers
             if (file == null || file.Length == 0)
                 return null;
 
-            string uniqueId   = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
-            string extension  = Path.GetExtension(file.FileName);
-            string fileName   = $"MAT-{uniqueId}-{suffix}{extension}";
+            string uniqueId  = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+            string extension = Path.GetExtension(file.FileName);
+            string fileName  = $"MAT-{uniqueId}-{suffix}{extension}";
 
             string folderPath = Path.Combine(_hostingEnvironment.WebRootPath, "upload", "img", "abn");
             if (subFolder != null)
@@ -581,22 +616,22 @@ namespace P1F_TPM360_HUB.Controllers
                     using (SqlCommand cmd = new SqlCommand("AddActionOwner", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@action_owner",          sesaId);
-                        cmd.Parameters.AddWithValue("@order_id",              order_id);
-                        cmd.Parameters.AddWithValue("@facility_id",           facility_id);
-                        cmd.Parameters.AddWithValue("@abn_type",              GetDbValue(abn_type));
-                        cmd.Parameters.AddWithValue("@abn_happen",            GetDbValue(abn_happen));
-                        cmd.Parameters.AddWithValue("@abn_rootcause",         GetDbValue(abn_rootcause));
-                        cmd.Parameters.AddWithValue("@input_root",            GetDbValue(input_root));
-                        cmd.Parameters.AddWithValue("@input_machine",         GetDbValue(input_machine));
-                        cmd.Parameters.AddWithValue("@am_checklist",          GetDbValue(am_checklist));
-                        cmd.Parameters.AddWithValue("@assigned_action",       GetDbValue(assigned_action));
+                        cmd.Parameters.AddWithValue("@action_owner",            sesaId);
+                        cmd.Parameters.AddWithValue("@order_id",                order_id);
+                        cmd.Parameters.AddWithValue("@facility_id",             facility_id);
+                        cmd.Parameters.AddWithValue("@abn_type",                GetDbValue(abn_type));
+                        cmd.Parameters.AddWithValue("@abn_happen",              GetDbValue(abn_happen));
+                        cmd.Parameters.AddWithValue("@abn_rootcause",           GetDbValue(abn_rootcause));
+                        cmd.Parameters.AddWithValue("@input_root",              GetDbValue(input_root));
+                        cmd.Parameters.AddWithValue("@input_machine",           GetDbValue(input_machine));
+                        cmd.Parameters.AddWithValue("@am_checklist",            GetDbValue(am_checklist));
+                        cmd.Parameters.AddWithValue("@assigned_action",         GetDbValue(assigned_action));
                         cmd.Parameters.AddWithValue("@input_corrective_action", GetDbValue(input_corrective_action));
-                        cmd.Parameters.AddWithValue("@date_target",           ParseDate(date_target));
-                        cmd.Parameters.AddWithValue("@status",                status_for_action);
-                        cmd.Parameters.AddWithValue("@date_completed",        ParseDate(date_completed));
-                        cmd.Parameters.AddWithValue("@picture_action",        fileNameAfter != null ? (object)fileNameAfter : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@attachment_file",       fileNamePdf   != null ? (object)fileNamePdf   : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@date_target",             ParseDate(date_target));
+                        cmd.Parameters.AddWithValue("@status",                  status_for_action);
+                        cmd.Parameters.AddWithValue("@date_completed",          ParseDate(date_completed));
+                        cmd.Parameters.AddWithValue("@picture_action",          fileNameAfter != null ? (object)fileNameAfter : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@attachment_file",         fileNamePdf   != null ? (object)fileNamePdf   : DBNull.Value);
 
                         cmd.ExecuteNonQuery();
                     }
@@ -604,9 +639,9 @@ namespace P1F_TPM360_HUB.Controllers
 
                 return Json(new { success = true, message = "Data berhasil ditambahkan!" });
             }
-            catch (Exception)
+            catch
             {
-                return Json(new { success = false, message = "Terjadi kesalahan saat menambahkan data. Cek log untuk detail." });
+                return Json(new { success = false, message = "Terjadi kesalahan saat menambahkan data." });
             }
         }
 
@@ -692,274 +727,6 @@ namespace P1F_TPM360_HUB.Controllers
             {
                 return Json(new { success = false, message = "Terjadi kesalahan: " + ex.Message });
             }
-        }
-
-        // ===================================================================
-        // DASHBOARD
-        // ===================================================================
-
-        /// <summary>
-        /// Halaman Dashboard MAT.
-        /// Hanya bisa diakses jika user sudah login (sesa_id tersedia).
-        /// </summary>
-        public IActionResult Dashboard()
-        {
-            if (User.FindFirst(ClaimTypes.NameIdentifier)?.Value == null)
-                return RedirectToAction("Index", "Login");
-
-            ViewBag.Facilities = GetFacility();
-            ViewBag.Lines      = GetLineDashboard();
-            ViewBag.Stations   = GetStationDashboard();
-
-            return View();
-        }
-
-        /// <summary>
-        /// Helper generik untuk endpoint dashboard yang memanggil stored procedure.
-        /// Digunakan oleh semua GET_* dan GET_DETAIL_* actions di bawah.
-        /// </summary>
-        private IActionResult ExecuteDashboardStoredProc(
-            string storedProcName,
-            string facility, string line, string station,
-            string date_from, string date_to, string range,
-            Action<List<dynamic>, SqlDataReader> mapRow,
-            string partialView = null,
-            string value = null,
-            string type = null)
-        {
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            {
-                var dataList = new List<dynamic>();
-
-                using (SqlCommand cmd = new SqlCommand(storedProcName, conn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@facility",   string.IsNullOrEmpty(facility)  ? (object)DBNull.Value : facility);
-                    cmd.Parameters.AddWithValue("@line_no",    string.IsNullOrEmpty(line)       ? (object)DBNull.Value : line);
-                    cmd.Parameters.AddWithValue("@station_id", string.IsNullOrEmpty(station)    ? (object)DBNull.Value : station);
-                    cmd.Parameters.AddWithValue("@range",      string.IsNullOrEmpty(range)      ? (object)DBNull.Value : range);
-                    cmd.Parameters.AddWithValue("@date_from",  string.IsNullOrEmpty(date_from)  ? DateTime.Now.ToString("yyyy-MM-01") : date_from);
-                    cmd.Parameters.AddWithValue("@date_to",    string.IsNullOrEmpty(date_to)    ? DateTime.Now.ToString("yyyy-MM-dd") : date_to);
-
-                    if (value != null) cmd.Parameters.AddWithValue("@value", string.IsNullOrEmpty(value) ? (object)DBNull.Value : value);
-                    if (type  != null) cmd.Parameters.AddWithValue("@type",  string.IsNullOrEmpty(type)  ? (object)DBNull.Value : type);
-
-                    conn.Open();
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            dynamic row = new ExpandoObject();
-                            mapRow(dataList, reader);
-                        }
-                    }
-                }
-
-                return partialView != null ? PartialView(partialView, dataList) : Json(dataList);
-            }
-        }
-
-        // ── Helper: membaca kolom standar detail finding ─────────────────────
-        private void MapDetailRow(List<dynamic> list, SqlDataReader reader)
-        {
-            dynamic row = new ExpandoObject();
-            row.finding_date    = reader["finding_date"].ToString();
-            row.facility        = reader["facility"].ToString();
-            row.line_no         = reader["line_no"].ToString();
-            row.station_id      = reader["station_id"].ToString();
-            row.tag_id          = reader["tag_id"].ToString();
-            row.tag_dept        = reader["tag_dept"].ToString();
-            row.operators       = reader["operator"].ToString();
-            row.findings        = reader["remark"].ToString();
-            row.picture_finding = reader["picture_finding"].ToString();
-            row.picture_after   = reader["image"].ToString();
-            row.corrective      = reader["corrective"].ToString();
-            row.attachment_file = reader["attachment_file"].ToString();
-            row.status_request  = reader["status_request"].ToString();
-            row.status_dynamic  = reader["status_desc"].ToString();
-            row.name_owner      = reader["name_owner"].ToString();
-            row.name_validator  = reader["name_validator"].ToString();
-            list.Add(row);
-        }
-
-        // ===================================================================
-        // DASHBOARD: CHART DATA ENDPOINTS
-        // ===================================================================
-
-        [HttpPost] public IActionResult GET_FINDING_CLOSED(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_FINDING_CLOSED", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.Period_Group = r["Period_Group"].ToString(); d.Findings = r["Findings"].ToString(); d.Closed = r["Closed"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_TOTAL_OPLs(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_OPLS", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.Period_Group = r["Period_Group"].ToString(); d.Accumulative = r["Accumulative"].ToString(); d.Closed = r["Closed"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_SHARP_EYE(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_SHARP_EYE", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.FindingName = r["FindingName"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_TPM_TAG(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_TPM_TAG", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.TagId = r["TagId"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_ROOTCAUSE(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_ROOTCAUSE", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.AbnRootCause = r["AbnRootCause"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_HAPPEN(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_HAPPEN", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.AbnHappen = r["AbnHappen"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_ABN_TYPE(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_ABN_TYPE", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.AbnType = r["AbnType"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_FIXED_BY_SELF(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_FIXED_BY_SELF", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.FindingName = r["FindingName"].ToString(); d.BarChart = r["BarChart"].ToString(); list.Add(d); });
-
-        [HttpPost] public IActionResult GET_OPLS_PER_SITE(string facility, string line, string station, string date_from, string date_to, string range)
-            => ExecuteDashboardStoredProc("GET_OPLS_PER_SITE", facility, line, station, date_from, date_to, range,
-                (list, r) => { dynamic d = new ExpandoObject(); d.Facility = r["Facility"].ToString(); d.Closed = r["Closed"].ToString(); list.Add(d); });
-
-        // ===================================================================
-        // DASHBOARD: DETAIL DATA ENDPOINTS (klik chart → lihat data detail)
-        // ===================================================================
-
-        [HttpPost] public IActionResult GET_DETAIL_FINDING_CLOSED(string facility, string line, string station, string date_from, string date_to, string range, string value, string type)
-            => ExecuteDashboardStoredProc("GET_DETAIL_FINDING_CLOSED", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value, type);
-
-        [HttpPost] public IActionResult GET_DETAIL_OPLS(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_OPLS", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_OPLS_PER_SITE(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_OPLS_PER_SITE", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_SHARP_EYE(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_SHARP_EYE", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_TPM_TAG(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_TPM_TAG", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_ROOTCAUSE(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_ROOTCAUSE", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_HAPPEN(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_HAPPEN", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_ABN_TYPE(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_ABN_TYPE", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        [HttpPost] public IActionResult GET_DETAIL_FIXED_BY_SELF(string facility, string line, string station, string date_from, string date_to, string range, string value)
-            => ExecuteDashboardStoredProc("GET_DETAIL_FIXED_BY_SELF", facility, line, station, date_from, date_to, range, MapDetailRow, "_TableDetail", value);
-
-        // ===================================================================
-        // UTILITIES
-        // ===================================================================
-
-        /// <summary>
-        /// Mengambil range tanggal default (From/To) dari database via SP GetDateSO.
-        /// </summary>
-        [HttpGet]
-        public JsonResult GetDateSO()
-        {
-            var date = new DateModel();
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand("GetDateSO", conn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                conn.Open();
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        date.FromDate    = reader["From_Date"].ToString();
-                        date.CurrentDate = reader["To_Date"].ToString();
-                    }
-                }
-            }
-
-            return Json(date);
-        }
-
-        /// <summary>
-        /// Mengganti password user.
-        /// Old password diverifikasi dulu sebelum password baru disimpan.
-        /// </summary>
-        public JsonResult ChangePassword(int id, string oldpsw, string newpsw)
-        {
-            var auth = new Authentication();
-            string hashedOldPassword = auth.MD5Hash(oldpsw);
-            string hashedNewPassword = auth.MD5Hash(newpsw);
-
-            string query = "SELECT TOP 1 id_user FROM mst_users WHERE id_user = @id AND password = @password";
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
-            {
-                cmd.Parameters.AddWithValue("@id",       id);
-                cmd.Parameters.AddWithValue("@password", hashedOldPassword);
-
-                conn.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        // Password lama cocok → update dengan password baru
-                        cmd.Parameters.Clear();
-                        cmd.CommandText = "UPDATE mst_users SET password = @password WHERE id_user = @id";
-                        cmd.Parameters.AddWithValue("@id",       id);
-                        cmd.Parameters.AddWithValue("@password", hashedNewPassword);
-                    }
-                }
-
-                int result = cmd.ExecuteNonQuery();
-                conn.Close();
-                return Json(result);
-            }
-        }
-
-        /// <summary>
-        /// Halaman profil user.
-        /// Hanya bisa diakses oleh level tertentu: mqe, admin, mat, ldr.
-        /// </summary>
-        public IActionResult Profile()
-        {
-            string userLevel = User.FindFirst("P1F_TPM360_HUB_level")?.Value;
-            string idUser    = User.FindFirst("P1F_TPM360_HUB_id")?.Value;
-
-            string[] allowedLevels = { "mqe", "admin", "mat", "ldr" };
-            if (!allowedLevels.Contains(userLevel))
-                return RedirectToAction("SignOut", "Login");
-
-            var users = new List<UserManagementModel>();
-            string query = "SELECT TOP 1 id_user, sesa_id, name, level FROM mst_users WHERE id_user = @id";
-
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
-            using (SqlCommand cmd = new SqlCommand(query, conn))
-            {
-                cmd.Parameters.AddWithValue("@id", idUser);
-                cmd.Connection = conn;
-                conn.Open();
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        users.Add(new UserManagementModel
-                        {
-                            id_user = Convert.ToInt32(reader["id_user"]),
-                            sesa_id = reader["sesa_id"].ToString(),
-                            name    = reader["name"].ToString(),
-                            level   = reader["level"].ToString()
-                        });
-                    }
-                }
-            }
-
-            return View(users);
         }
 
         // ===================================================================

@@ -1,4 +1,4 @@
-﻿@inject IHttpContextAccessor HttpContextAccessor
+@inject IHttpContextAccessor HttpContextAccessor
 @using System.Security.Claims
 @{
     Layout = "~/Views/Shared/_LayoutMAT.cshtml";
@@ -68,8 +68,8 @@
 <body>
     <div class="wrapper">
 
-        <!-- HERO HEADER -->v
-        <partial name="_HeroHeader" model='("MATA Dashboard", "/images/background/bgdashboard.jpg")' />
+        <!-- HERO HEADER -->
+        <partial name="_HeroHeader" model='("Dashboard", "/images/background/bgdashboard.jpg")' />
 
         <div class="content pt-3">
             <div class="container-fluid">
@@ -448,7 +448,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_FINDING_CLOSED", "MAT")",
+                    url: "@Url.Action("GET_FINDING_CLOSED", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -587,7 +587,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_TOTAL_OPLs", "MAT")",
+                    url: "@Url.Action("GET_TOTAL_OPLs", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -748,7 +748,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_OPLS_PER_SITE", "MAT")",
+                    url: "@Url.Action("GET_OPLS_PER_SITE", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -882,7 +882,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_SHARP_EYE", "MAT")",
+                    url: "@Url.Action("GET_SHARP_EYE", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -992,7 +992,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_TPM_TAG", "MAT")",
+                    url: "@Url.Action("GET_TPM_TAG", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -1101,7 +1101,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_ROOTCAUSE", "MAT")",
+                    url: "@Url.Action("GET_ROOTCAUSE", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -1209,7 +1209,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_HAPPEN", "MAT")",
+                    url: "@Url.Action("GET_HAPPEN", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -1318,7 +1318,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_ABN_TYPE", "MAT")",
+                    url: "@Url.Action("GET_ABN_TYPE", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -1426,7 +1426,7 @@
                 $.ajax({
                     type: "POST",
                     cache: false,
-                    url: "@Url.Action("GET_FIXED_BY_SELF", "MAT")",
+                    url: "@Url.Action("GET_FIXED_BY_SELF", "Dashboard")",
                     data: {
                         facility: facility,
                         line: line,
@@ -1515,55 +1515,55 @@
             function actionDetailAbnMonitor(v_a_l_u_e, type) {
                 $('#detailsModalTitle').text('Cavite Abnormalities Monitoring');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_FINDING_CLOSED", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_FINDING_CLOSED", "Dashboard")';
                 getDetail2Param(v_a_l_u_e, type, controlTarget);
             }
             function actionDetailTotalOPLs(v_a_l_u_e) {
                 $('#detailsModalTitle').text('Total OPLs');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_OPLS", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_OPLS", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailOPLsPerSite(v_a_l_u_e) {
                 $('#detailsModalTitle').text('OPLs per site');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_OPLS_PER_SITE", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_OPLS_PER_SITE", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailSharpEye(v_a_l_u_e) {
                 $('#detailsModalTitle').text('Top 10 Sharp Eye in finding abnormalities');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_SHARP_EYE", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_SHARP_EYE", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailTpmTag(v_a_l_u_e) {
                 $('#detailsModalTitle').text('TPM Tag category');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_TPM_TAG", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_TPM_TAG", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailRootCause(v_a_l_u_e) {
                 $('#detailsModalTitle').text('RootCause');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_ROOTCAUSE", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_ROOTCAUSE", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailHappen(v_a_l_u_e) {
                 $('#detailsModalTitle').text('What will happen if it is left as it is');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_HAPPEN", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_HAPPEN", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailAbnType(v_a_l_u_e) {
                 $('#detailsModalTitle').text('Seven Types of Abnormalities');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_ABN_TYPE", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_ABN_TYPE", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
             function actionDetailFixedSelf(v_a_l_u_e) {
                 $('#detailsModalTitle').text('Top 10 Fixed by Self');
                 $('#detailModal').modal('show');
-                var controlTarget = '@Url.Action("GET_DETAIL_FIXED_BY_SELF", "MAT")';
+                var controlTarget = '@Url.Action("GET_DETAIL_FIXED_BY_SELF", "Dashboard")';
                 getDetail1Param(v_a_l_u_e, controlTarget);
             }
 

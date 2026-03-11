@@ -8,6 +8,9 @@ namespace P1F_TPM360_HUB.Controllers
 {
     public class ChangePasswordController : Controller
     {
+        // ===================================================================
+        // DEPENDENCY INJECTION
+        // ===================================================================
         private readonly DatabaseAccessLayer _db;
 
         public ChangePasswordController(DatabaseAccessLayer db)
@@ -15,9 +18,18 @@ namespace P1F_TPM360_HUB.Controllers
             _db = db;
         }
 
+        // ===================================================================
+        // HALAMAN UTAMA
+        // ===================================================================
+
+        /// <summary>
+        /// Menampilkan halaman Change Password.
+        /// Mengambil data biodata user (Name, Email, SesaId, Level) dari claims
+        /// dan mengirimkannya ke view via ChangePasswordModel.
+        /// </summary>
         public IActionResult Index()
         {
-            var model = new UserSettingsViewModel
+            var model = new ChangePasswordModel
             {
                 Name   = User.FindFirst("P1F_TPM360_HUB_name")?.Value,
                 Email  = User.FindFirst(ClaimTypes.Email)?.Value,
@@ -28,13 +40,26 @@ namespace P1F_TPM360_HUB.Controllers
             return View(model);
         }
 
+        // ===================================================================
+        // ACTION: CHANGE PASSWORD
+        // ===================================================================
+
+        /// <summary>
+        /// Memproses permintaan ganti password dari form.
+        /// Alur validasi:
+        ///   1. Cek semua field tidak boleh kosong.
+        ///   2. Cek NewPassword dan ConfirmPassword harus sama.
+        ///   3. Hash OldPassword lalu cek ke database apakah cocok dengan data user.
+        ///   4. Jika cocok, hash NewPassword lalu update ke database.
+        /// Menggunakan TempData["Success"] / TempData["Error"] untuk notifikasi SweetAlert di view.
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ChangePassword(UserSettingsViewModel model)
+        public async Task<IActionResult> ChangePassword(ChangePasswordModel model)
         {
             var sesaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // Validasi input kosong
+            // Validasi: semua field wajib diisi
             if (string.IsNullOrWhiteSpace(model.OldPassword) ||
                 string.IsNullOrWhiteSpace(model.NewPassword) ||
                 string.IsNullOrWhiteSpace(model.ConfirmPassword))
@@ -43,7 +68,7 @@ namespace P1F_TPM360_HUB.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Validasi new vs confirm
+            // Validasi: new password harus sama dengan confirm password
             if (model.NewPassword != model.ConfirmPassword)
             {
                 TempData["Error"] = "New password and confirm password do not match.";
@@ -58,7 +83,7 @@ namespace P1F_TPM360_HUB.Controllers
             {
                 await conn.OpenAsync();
 
-                // Cek old password benar
+                // Cek apakah old password yang diinput sesuai dengan password di database
                 string checkQuery = "SELECT COUNT(1) FROM mst_users WHERE sesa_id = @sesa_id AND password = @password";
                 SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
                 checkCmd.Parameters.AddWithValue("@sesa_id",  sesaId);
@@ -71,7 +96,7 @@ namespace P1F_TPM360_HUB.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Update password baru
+                // Update password baru ke database (dalam bentuk MD5 hash)
                 string updateQuery = "UPDATE mst_users SET password = @newPassword WHERE sesa_id = @sesa_id";
                 SqlCommand updateCmd = new SqlCommand(updateQuery, conn);
                 updateCmd.Parameters.AddWithValue("@newPassword", hashedNew);

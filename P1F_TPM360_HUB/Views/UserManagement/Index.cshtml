@@ -237,7 +237,7 @@
         $('#edit_name').val(name);
         $('#edit_email').val(email);
 
-        $.get('@Url.Action("GetLevelEdit", "Admin")', { level }, (data) => $('#edit_level').selectpicker('val', data));
+        $.get('@Url.Action("GetLevelEdit", "UserManagement")', { level }, (data) => $('#edit_level').selectpicker('val', data));
 
         $('#modal_edit').modal('show');
     }
@@ -265,7 +265,7 @@
             if (!result.isConfirmed) return;
             showSpinner(true);
 
-            $.post("@Url.Action("UpdateUser", "Admin")", payload)
+            $.post("@Url.Action("UpdateUser", "UserManagement")", payload)
                 .done((res) => {
                     showSpinner(false);
                     res.success
@@ -292,7 +292,7 @@
 
         showSpinner(true);
 
-        $.post("@Url.Action("AddUser", "Admin")", payload)
+        $.post("@Url.Action("AddUser", "UserManagement")", payload)
             .done((res) => {
                 showSpinner(false);
                 res.success
@@ -317,7 +317,7 @@
             if (!result.isConfirmed) return;
             showSpinner(true);
 
-            $.post("@Url.Action("DeleteUser", "Admin")", { id })
+            $.post("@Url.Action("DeleteUser", "UserManagement")", { id })
                 .done((res) => {
                     showSpinner(false);
                     res.success
@@ -347,7 +347,7 @@
             if (!result.isConfirmed) return;
             showSpinner(true);
 
-            $.post("@Url.Action("DeleteMultipleUser", "Admin")", { ids })
+            $.post("@Url.Action("DeleteMultipleUser", "UserManagement")", { ids })
                 .done((res) => {
                     showSpinner(false);
                     res.success
