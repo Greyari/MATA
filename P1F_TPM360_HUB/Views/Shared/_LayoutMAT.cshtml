@@ -248,14 +248,14 @@
         $('#btn-logout').on('click', function (e) {
             e.preventDefault();
             Swal.fire({
-                title: 'Konfirmasi Logout',
-                text: 'Apakah Anda yakin ingin keluar?',
+                title: 'Logout Confirmation',
+                text: 'Are you sure you want to exit?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Ya, Logout',
-                cancelButtonText: 'Batal',
+                confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Yes, Logout',
+                cancelButtonText: 'Cancelled',
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
