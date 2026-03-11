@@ -1,0 +1,180 @@
+@model P1F_MATA.Models.ViewModels.ChangePasswordModel
+@{
+    Layout = "~/Views/Shared/_LayoutMAT.cshtml";
+}
+
+<div class="wrapper">
+    <div class="content">
+
+        <partial name="_HeroHeader" model='("Settings", "/images/background/bgchangepassword.jpeg")' />
+
+        <div class="container-fluid mt-3">
+
+            <!-- Biodata -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-bold text-secondary">
+                        <i class="fas fa-user-circle mr-2"></i>Biodata
+                    </h6>
+                </div>
+                <div class="card-body">
+
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-2 col-form-label text-muted fw-semibold">Name</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control bg-light border-0" value="@(Model.Name ?? "-")" readonly />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-2 col-form-label text-muted fw-semibold">Email</label>
+                        <div class="col-sm-10">
+                            <input type="email" class="form-control bg-light border-0" value="@(Model.Email ?? "-")" readonly />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-2 col-form-label text-muted fw-semibold">SESA ID</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control bg-light border-0" value="@(Model.SesaId ?? "-")" readonly />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-2 col-form-label text-muted fw-semibold">Level</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control bg-light border-0" value="@(Model.Level ?? "-")" readonly />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Change Password -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-bold text-secondary">
+                        <i class="fas fa-shield-alt mr-2"></i>Change Password
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="ChangePassword" asp-controller="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-sm-2 col-form-label text-muted fw-semibold">Old Password</label>
+                            <div class="col-sm-10">
+                                <div style="position: relative;">
+                                    <input type="password" id="pwOld" name="OldPassword"
+                                        class="form-control"
+                                        style="padding-right: 40px;"
+                                        placeholder="Enter old password" />
+                                    <button type="button"
+                                            onclick="togglePassword('pwOld', this)"
+                                            tabindex="-1"
+                                            style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: none; border: none; color: #6c757d; padding: 0; cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-sm-2 col-form-label text-muted fw-semibold">New Password</label>
+                            <div class="col-sm-10">
+                                <div style="position: relative;">
+                                    <input type="password" id="pwNew" name="NewPassword"
+                                        class="form-control"
+                                        style="padding-right: 40px;"
+                                        placeholder="Enter new password" />
+                                    <button type="button"
+                                            onclick="togglePassword('pwNew', this)"
+                                            tabindex="-1"
+                                            style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: none; border: none; color: #6c757d; padding: 0; cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-sm-2 col-form-label text-muted fw-semibold">Confirm Password</label>
+                            <div class="col-sm-10">
+                                <div style="position: relative;">
+                                    <input type="password" id="pwConfirm" name="ConfirmPassword"
+                                        class="form-control"
+                                        style="padding-right: 40px;"
+                                        placeholder="Confirm new password" />
+                                    <button type="button"
+                                            onclick="togglePassword('pwConfirm', this)"
+                                            tabindex="-1"
+                                            style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: none; border: none; color: #6c757d; padding: 0; cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-10 offset-sm-2">
+                                <button type="submit" class="btn btn-success px-4">
+                                    <i class="fas fa-check-circle me-1"></i> Save Password
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hidden input untuk SweetAlert -->
+            @if (TempData["Success"] != null)
+            {
+                <input type="hidden" id="swal-success" value="@TempData["Success"]" />
+            }
+            @if (TempData["Error"] != null)
+            {
+                <input type="hidden" id="swal-error" value="@TempData["Error"]" />
+            }
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon  = btn.querySelector('i');
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            icon.classList.toggle('fa-eye',       !isHidden);
+            icon.classList.toggle('fa-eye-slash',  isHidden);
+        }
+
+        const successMsg = document.getElementById('swal-success')?.value;
+        const errorMsg   = document.getElementById('swal-error')?.value;
+
+        if (successMsg) {
+            Swal.fire({
+                title: 'Success!',
+                text: successMsg,
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#198754'
+            });
+        }
+
+        if (errorMsg) {
+            Swal.fire({
+                title: 'Oops!',
+                text: errorMsg,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#d33'
+            });
+        }
+
+    </script>
+}

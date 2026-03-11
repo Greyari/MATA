@@ -1,0 +1,62 @@
+﻿@using System.Globalization
+@using P1F_MATA.Models
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@model List<ABNModelHistory>
+<style>
+
+    .dataTables_info, .dataTables_paginate, .dataTables_filter {
+        font-size: 10pt;
+    }
+
+    table#table_detail_appr tr > td {
+        padding: 5px;
+        background-color: #e9ecef;
+    }
+
+
+    table#table_detail_appr thead th {
+        background-color: rgba(40, 167, 69, 0.9);
+        color: white;
+    }
+</style>
+
+<div class="modal-body" style="padding: 0px">
+    <div class="col-12 table-responsive">
+        <table class="table table-sm table-sm align-middle text-center nowrap" id="table_detail_appr" style="font-size:10pt">
+            <thead class="text-light">
+                <tr>
+                    <th class="text-left">Name</th>
+                    <th>Date</th>
+                    <th class="text-left">Remark</th>
+                </tr>
+            </thead>
+            <tbody style="background-color:#8ACCD5">
+                @foreach (var row in Model)
+                {
+                    <tr>
+                        <td class="text-left">
+                            <strong>@row.name</strong><br />
+                            <span style="font-size: 8pt;">@row.ova</span>
+                        </td>
+                        <td>@row.record_date</td>
+                        <td class="text-left">@row.remark</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+
+    $(document).ready(function () {
+        $("table#table_detail_appr").DataTable({
+            responsive: true,
+            autoWidth: false,
+            searching: false,
+            paging: false,
+            ordering: false,
+            info: false
+        });
+    });
+</script>

@@ -1,0 +1,1560 @@
+﻿@using P1F_MATA.Models
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
+@{
+    Layout = "~/Views/Shared/_LayoutMAT.cshtml";
+    var userLevel = User.FindFirst("P1F_MATA_level")?.Value;
+    bool isAdmin = (userLevel == "admin");
+    bool isAdminObservation = (userLevel == "admin_observation");
+    var current_sesa = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "N/A";
+    var current_name = User.FindFirst("P1F_MATA_name")?.Value ?? "N/A";
+}
+
+@* ===== CSS KHUSUS HALAMAN INI ===== *@
+@section Styles {
+    <style>
+        label.actual-btnn {
+            display: inline-block;
+            background-color: #3dcd58;
+            color: white;
+            padding: 0.5rem;
+            font-family: sans-serif;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            width: 100px;
+            height: 30px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .modal-dialog {
+            max-width: 110% !important;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .modal {
+            padding-right: 4px !important;
+            padding: .5%;
+        }
+
+        .pdfFile-form {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+        }
+
+        .responsive {
+            height: 400px;
+        }
+
+        table#table_detail tr > td {
+            padding: 5px;
+            background-color: #AFDDFF;
+        }
+
+        table#table_detail thead th {
+            background-color: #428bca !important;
+            color: white;
+        }
+    </style>
+}
+
+@* ===== KONTEN UTAMA (tanpa <div class="wrapper">) ===== *@
+
+<!-- HERO HEADER -->
+<partial name="_HeroHeader" model='("Machine Abnormality", "/images/background/bgmachineabnormality.jpeg")' />
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12 mt-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row mt-3">
+                        <div class="col-lg-2 col-md-2 col-sm-6">
+                            <label style="font-size:10pt; font-weight:bold;">Date From</label>
+                            <input type="date" id="date_from" value="" class="form-control form-control-sm text-center" />
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-6">
+                            <label style="font-size:10pt;font-weight:bold;">Date To</label>
+                            <input type="date" id="date_to" value="" class="form-control form-control-sm text-center" />
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-6">
+                            <div class="form-group">
+                                <label style="font-size:10pt;font-weight:bold;">Facility</label>
+                                <select class="form-select form-select-sm select2" id="filter_facility" style="width:100%;">
+                                    <option value="ALL">ALL</option>
+                                    @foreach (var facility in ViewBag.Facility)
+                                    {
+                                        <option value="@facility.Code">@facility.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6 align-self-end">
+                            <div class="form-group">
+                                <button class="btn btn-info btn-sm btn-block" onclick="addData()">
+                                    <i class="fa fa-plus mr-1"></i> Add Abnormality
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped border fixed" id="tbl_details_filter" style="font-size:10pt;">
+                            <thead class="bg-success" style="position: sticky; top:0">
+                                <tr class="text-center sticky-header">
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 6%;">Order ID</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 6%;">Date</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 10%;">Facility</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 8%;">Line/Cell no</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 9%;">Station ID</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 9%;">TPM Tag</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 10%;">Operator Sesa</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 15%;">Findings</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 8%;">Picture</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 6%;">Attachment</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 5%;">Status</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 10%;">Action Owner</th>
+                                    <th class="font-calibri border-right align-middle text-center text-white" style="width: 10%;">Validator</th>
+                                    <th class="font-calibri align-middle text-center text-white" style="width: 10%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ABNTableContainer"></tbody>
+                        </table>
+                    </div>
+                    <div id="spinner_loading" class="text-center mt-2" style="display: none">
+                        <i class="fas fa-spinner fa-spin fa-lg" style="font-size:30pt;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ADD NEW ABNORMALITY ===== -->
+<div id="modal_add" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#3dcd58">
+                <h5 class="text-white"><i class="fa fa-info-circle mr-2"></i>Add New Abnormality</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row ml-2 mr-2">
+                    <div class="col-12">
+                        <div class="card card-outline">
+                            <div class="row ml-2 mr-2">
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Date<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" type="date" id="date_find" maxlength="255" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Facility<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="facility_id" style="width:100%;">
+                                            <option>--- Select Facility ---</option>
+                                            @foreach (var facility in ViewBag.Facility)
+                                            {
+                                                <option value="@facility.Code">@facility.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Line/Cell no<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="line" style="width:100%;">
+                                            <option>--- Select Line/Cell no ---</option>
+                                            @foreach (var line in ViewBag.Line)
+                                            {
+                                                <option value="@line.Code">@line.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Station ID<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="station" style="width:100%;">
+                                            <option>--- Select Station ID ---</option>
+                                            @foreach (var station in ViewBag.Station)
+                                            {
+                                                <option value="@station.Code">@station.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">TPM Tag<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="tpm_tag" style="width:100%;">
+                                            <option>--- Select TPM Tag ---</option>
+                                            @foreach (var tag in ViewBag.TpmTag)
+                                            {
+                                                <option value="@tag.Code" data-name="@tag.Name">@tag.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Fixed by<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="fixed_myself" style="width:100%;">
+                                            <option>--- Select ---</option>
+                                            <option>Fixed by myself</option>
+                                            <option>Action owner</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Tag Area<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" id="tag_id" disabled />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Action Owner<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" id="action_owner_display" disabled />
+                                        <input type="hidden" id="action_owner_sesa_hidden" name="ActionOwnerSesa" value="" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4" id="validated_by_container" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Validated by<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" id="validated_by_display" disabled />
+                                        <input type="hidden" id="validated_by_sesa_hidden" name="ValidatedBySesa" value="" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4" id="sesa_op_container">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Operator SESA<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="sesa_op" style="width:100%;">
+                                            <option>--- Select Operator SESA ---</option>
+                                            @foreach (var op in ViewBag.SesaOP)
+                                            {
+                                                <option value="@op.Code">@op.Code - @op.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Findings<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="finding" maxlength="255" style="resize:vertical; min-height:50px;" placeholder="no findings allowed."></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-1">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Finding picture<span style="color:red;">*</span></label>
+                                        <div class="ml-1" id="finding_picture_section">
+                                            <div class="row">
+                                                <input type="file" name="file" accept=".jpg,.bmp,.png,.jfif" id="finding_file_input" hidden />
+                                                <label for="finding_file_input" class="actual-btnn">Choose file</label>
+                                            </div>
+                                            <div class="row">
+                                                <span id="finding_file_name_display" style="width:100%;">No file chosen</span>
+                                                <button id="finding_file_reset_btn" class="reset-btnn" style="display:none;">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-1">
+                                    <label style="font-size:10pt; font-weight:bold;">Preview</label>
+                                    <div class="ml-1">
+                                        <img id="finding_img_preview" src="" style="width:5rem; height:5rem; display:none;" />
+                                    </div>
+                                </div>
+
+                                <div class="row ml-2 mr-2">
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Select Type of Abnormality<span style="color:red;">*</span></label>
+                                            <select class="form-select form-select-sm text-center select2" id="abn_type_add" style="width:100%;">
+                                                <option value="--- Select ---">--- Select ---</option>
+                                                @foreach (var item in ViewBag.AbnType)
+                                                {
+                                                    <option value="@item.Code">@item.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">What will happen if it is left as it is?<span style="color:red;">*</span></label>
+                                            <select class="form-select form-select-sm text-center select2" id="abn_happen_add" style="width:100%;">
+                                                <option value="--- Select ---">--- Select ---</option>
+                                                @foreach (var item in ViewBag.AbnHappen)
+                                                {
+                                                    <option value="@item.Name">@item.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Root Cause (Human Weakness)<span style="color:red;">*</span></label>
+                                            <select class="form-select form-select-sm text-center select2" id="abn_rootcause_add" style="width:100%;">
+                                                <option value="--- Select ---">--- Select ---</option>
+                                                @foreach (var item in ViewBag.AbnRootCause)
+                                                {
+                                                    <option value="@item.Code">@item.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Input root cause analysis<span style="color:red;">*</span></label>
+                                            <textarea class="form-control form-control-sm" id="input_root_add" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <label style="font-size:10pt; font-weight:bold;">Are this covered on AM checklist?<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="am_checklist_fixed_add" style="width:100%;">
+                                            <option value="--- Select ---">--- Select ---</option>
+                                            <option value="Y">Yes</option>
+                                            <option value="N">No</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 machine_input_container_add fixed-myself-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Input machine major part and machine sub part<span style="color:red;">*</span></label>
+                                            <textarea class="form-control form-control-sm" id="input_machine_add" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields hideable-action-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Input countermeasure/corrective action<span style="color:red;">*</span></label>
+                                            <textarea class="form-control form-control-sm" id="input_corrective_action_add" style="resize:vertical; min-height:50px;"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields hideable-action-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Target Completion<span style="color:red;">*</span></label>
+                                            <input class="form-control form-control-sm" type="date" id="date_target_add" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields hideable-action-fields" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Attachment File ".pdf"</label>
+                                            <input type="file" class="form-control pdfFile-form" name="FormFileAdd" id="pdfFile_add" accept=".pdf">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields" style="display:none;">
+                                        <label style="font-size:10pt; font-weight:bold;">Status<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" type="text" id="status_fixed_add" value="Open" disabled />
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-4 fixed-myself-fields mb-3" style="display:none;">
+                                        <label style="font-size:10pt; font-weight:bold;">Assigned Action<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" type="text" id="assigned_action_fixed_add" value="Self Fixed" disabled />
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-1 fixed-myself-fields mt-3" style="display:none;">
+                                        <div class="form-group">
+                                            <label style="font-size:10pt; font-weight:bold;">Action Picture<span style="color:red;">*</span></label>
+                                            <div class="ml-1" id="action_picture_section_add">
+                                                <div class="row">
+                                                    <input type="file" name="file_action_add" accept=".jpg,.bmp,.png,.jfif" id="action_file_input_add" hidden />
+                                                    <label for="action_file_input_add" class="actual-btnn">Choose file</label>
+                                                </div>
+                                                <div class="row">
+                                                    <span id="action_file_name_display_add" style="width:100%;">No file chosen</span>
+                                                </div>
+                                                <button id="action_file_reset_btn_add" class="btn btn-danger btn-sm mt-2" style="display:none;">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-1 fixed-myself-fields mt-3" style="display:none;">
+                                        <label style="font-size:10pt; font-weight:bold;">Action Preview</label>
+                                        <div class="ml-1">
+                                            <img id="action_img_preview_add" src="" style="width:5rem; height:5rem; display:none;" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="row d-flex justify-content-center">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <button class="btn btn-success btn-block" id="create_Data">
+                                    <i class="fas fa-pen"></i> Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ACTION OWNER ===== -->
+<div id="modal_action" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#3dcd58">
+                <h5 class="text-white"><i class="fa fa-info-circle mr-2"></i>Action Owner</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row ml-2 mr-2">
+                    <div class="col-12">
+                        <div class="card card-outline">
+                            <div class="row ml-2 mr-2">
+                                <input type="hidden" id="hidden_facility_id" />
+                                <input type="hidden" id="order_id" />
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Facility</label>
+                                    <input class="form-control form-control-sm display_facility" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Order ID</label>
+                                    <input class="form-control form-control-sm display_order_id" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Select Type of Abnormality<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="abn_type" style="width:100%;">
+                                            <option>--- Select ---</option>
+                                            @foreach (var item in ViewBag.AbnType)
+                                            {
+                                                <option value="@item.Code">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 abn-hideable-field">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">What will happen if it is left as it is?<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="abn_happen" style="width:100%;">
+                                            <option>--- Select ---</option>
+                                            @foreach (var item in ViewBag.AbnHappen)
+                                            {
+                                                <option value="@item.Name">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 abn-hideable-field">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Root Cause (Human Weakness)<span style="color:red;">*</span></label>
+                                        <select class="form-select form-select-sm text-center select2" id="abn_rootcause" style="width:100%;">
+                                            <option>--- Select ---</option>
+                                            @foreach (var item in ViewBag.AbnRootCause)
+                                            {
+                                                <option value="@item.Code">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4 abn-hideable-field">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Input root cause analysis<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="input_root" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4 abn-hideable-field machine_input_container" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Input machine major part and machine sub part<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="input_machine" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2 abn-hideable-field">
+                                    <label style="font-size:10pt; font-weight:bold;">Are this covered on AM checklist?<span style="color:red;">*</span></label>
+                                    <select class="form-select form-select-sm text-center select2" id="am_checklist" style="width:100%;">
+                                        <option selected>--- Select ---</option>
+                                        <option value="Y">Yes</option>
+                                        <option value="N">No</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 abn-hideable-field">
+                                    <label style="font-size:10pt; font-weight:bold;">Assigned Action<span style="color:red;">*</span></label>
+                                    <select class="form-select form-select-sm text-center select2" id="assigned_action" style="width:100%;" disabled></select>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4 abn-hideable-field yes" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Input countermeasure/corrective action<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="input_corrective_action" style="resize:vertical; min-height:50px;"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 abn-hideable-field yes" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Target Completion<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" type="date" id="date_completed" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 yes" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Attachment File ".pdf"</label>
+                                        <input type="file" class="form-control pdfFile-form" name="FormFile" id="pdfFile" accept=".pdf" required>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2">
+                                    <label style="font-size:10pt; font-weight:bold;">Status<span style="color:red;">*</span></label>
+                                    <select class="form-select form-select-sm text-center select2" id="status_for_action" style="width:100%;" disabled>
+                                        <option value="Open" selected>Open</option>
+                                        <option value="Closed">Closed</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-1 yes" style="display:none;">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Action Picture<span style="color:red;">*</span></label>
+                                        <div class="ml-1" id="action_picture_section_completed">
+                                            <div class="row">
+                                                <input type="file" name="file_completed" accept=".jpg,.bmp,.png,.jfif" id="action_file_input_completed" hidden />
+                                                <label for="action_file_input_completed" class="actual-btnn">Choose file</label>
+                                            </div>
+                                            <div class="row">
+                                                <span id="action_file_name_display_completed" style="width:100%;">No file chosen</span>
+                                            </div>
+                                            <button id="action_file_reset_btn_completed" class="reset-btnn" style="display:none;">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 flex-column align-items-center yes" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Preview</label>
+                                    <div>
+                                        <img id="action_img_preview_completed" src="" height="100" width="100" />
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;">Finding Picture</label>
+                                    <div>
+                                        <img class="display_file_img_findings" height="100" width="100" style="cursor:pointer" onclick="zoomFindingsPicture()" />
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 flex-column align-items-center text-center show-if-ada" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Action picture</label>
+                                    <div>
+                                        <img class="display_file_img_action" height="100" width="100" style="cursor:pointer" onclick="zoomActionPicture()" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-4">
+                        <div class="row d-flex justify-content-center">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <button class="btn btn-success btn-block" id="action_Data">
+                                    <i class="fas fa-pen"></i> Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- History -->
+                    <div class="col-12 mb-1">
+                        <div class="card card-outline">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                            <h1 class="card-title mb-0">History</h1>
+                                            <span class="toggle-arrow ml-auto toggleArrow" style="cursor:pointer">&#9660;</span>
+                                        </div>
+                                        <div class="col-12 card-body-wrapper cardBody">
+                                            <div class="modal-body p-0">
+                                                <div class="body_detail_appr"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: DETAIL ABN ===== -->
+<div id="modal_detail_abn" class="modal fade" tabindex="-1" role="dialog" data-backdrop="true" data-keyboard="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#3dcd58">
+                <h5 class="text-white"><i class="fa fa-info-circle mr-2"></i>Detail</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row ml-2 mr-2">
+                    <div class="col-12 mb-1">
+                        <div class="card card-outline">
+                            <div class="row ml-2 mr-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Facility</label>
+                                    <input class="form-control form-control-sm display_facility" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Order ID</label>
+                                    <input class="form-control form-control-sm display_order_id" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Select Type of Abnormality</label>
+                                    <input class="form-control form-control-sm display_abn_type" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">What will happen if it is left as it is?</label>
+                                    <input class="form-control form-control-sm display_abn_happen" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Root Cause (Human Weakness)</label>
+                                    <input class="form-control form-control-sm display_abn_rootcause" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <label style="font-size:10pt; font-weight:bold;">Input root cause analysis</label>
+                                    <textarea class="form-control form-control-sm display_input_root" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-5 machine_input_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Input machine major part and machine sub part</label>
+                                    <textarea class="form-control form-control-sm display_input_machine" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Are this covered on AM checklist?</label>
+                                    <input class="form-control form-control-sm display_am_checklist" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Assigned Action</label>
+                                    <input class="form-control form-control-sm display_assigned_action" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <label style="font-size:10pt; font-weight:bold;">Input countermeasure/corrective action</label>
+                                    <textarea class="form-control form-control-sm display_input_corrective_action" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Target Completion</label>
+                                    <input class="form-control form-control-sm display_date_target" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Status</label>
+                                    <input class="form-control form-control-sm display_status" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 date_completed_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Date Completed</label>
+                                    <input class="form-control form-control-sm display_date_completed" type="text" disabled />
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;" class="mb-1">Finding Picture</label>
+                                    <img class="display_file_img_findings" height="100" width="100" style="cursor:pointer" onclick="zoomFindingsPicture()" />
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;" class="mb-1">Action picture</label>
+                                    <img class="display_file_img_action" height="100" width="100" style="cursor:pointer" onclick="zoomActionPicture()" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- History -->
+                    <div class="col-12 mb-1">
+                        <div class="card card-outline">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                            <h1 class="card-title mb-0">History</h1>
+                                            <span class="toggle-arrow ml-auto toggleArrow" style="cursor:pointer">&#9660;</span>
+                                        </div>
+                                        <div class="col-12 card-body-wrapper toggleArrow">
+                                            <div class="modal-body p-0">
+                                                <div class="body_detail_appr"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: VALIDATOR ===== -->
+<div id="modal_validator" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#3dcd58">
+                <h5 class="text-white"><i class="fa fa-pen mr-2"></i>Validate</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row ml-5 mr-2">
+                    <div class="col-12">
+                        <div class="card card-outline">
+                            <div class="row ml-2 mr-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Facility</label>
+                                    <input class="form-control form-control-sm display_facility" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Order ID</label>
+                                    <input class="form-control form-control-sm display_order_id" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Select Type of Abnormality</label>
+                                    <input class="form-control form-control-sm display_abn_type" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">What will happen if it is left as it is?</label>
+                                    <input class="form-control form-control-sm display_abn_happen" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Root Cause (Human Weakness)</label>
+                                    <input class="form-control form-control-sm display_abn_rootcause" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Input root cause analysis</label>
+                                    <textarea class="form-control form-control-sm display_input_root" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4 machine_input_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Input machine major part and machine sub part</label>
+                                    <textarea class="form-control form-control-sm display_input_machine" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2">
+                                    <label style="font-size:10pt; font-weight:bold;">Are this covered on AM checklist?</label>
+                                    <input class="form-control form-control-sm display_am_checklist" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Assigned Action</label>
+                                    <input class="form-control form-control-sm display_assigned_action" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <label style="font-size:10pt; font-weight:bold;">Input countermeasure/corrective action</label>
+                                    <textarea class="form-control form-control-sm display_input_corrective_action" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Target Completion</label>
+                                    <input class="form-control form-control-sm display_date_target" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2">
+                                    <label style="font-size:10pt; font-weight:bold;">Status<span style="color:red;">*</span></label>
+                                    <select class="form-select form-select-sm text-center select2" id="status" style="width:100%;">
+                                        <option value="Open" selected>Open</option>
+                                        <option value="Closed">Closed</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2 date_completed_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Completed Date<span style="color:red;">*</span></label>
+                                    <input class="form-control form-control-sm" type="date" id="date_completed_val" />
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;" class="mb-1">Finding Picture</label>
+                                    <img class="display_file_img_findings" height="100" width="100" style="cursor:pointer" onclick="zoomFindingsPicture()" />
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;" class="mb-1">Action picture</label>
+                                    <img class="display_file_img_action" height="100" width="100" style="cursor:pointer" onclick="zoomActionPicture()" />
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Remark<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="remark" style="resize:vertical; min-height:50px;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-4">
+                        <div class="row d-flex justify-content-center">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <button class="btn btn-success btn-block" id="validator_Data">
+                                    <i class="fas fa-pen"></i> Validate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- History -->
+                    <div class="col-12 mb-1">
+                        <div class="card card-outline">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                            <h1 class="card-title mb-0">History</h1>
+                                            <span class="toggle-arrow ml-auto toggleArrow" style="cursor:pointer">&#9660;</span>
+                                        </div>
+                                        <div class="col-12 card-body-wrapper cardBody">
+                                            <div class="modal-body p-0">
+                                                <div class="body_detail_appr"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ASSIGNED ===== -->
+<div id="modal_assigned" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color:#3dcd58">
+                <h5 class="text-white"><i class="fa fa-pen mr-2"></i>Assigned</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row ml-5 mr-2">
+                    <div class="col-12">
+                        <div class="card card-outline">
+                            <div class="row ml-2 mr-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Facility</label>
+                                    <input class="form-control form-control-sm display_facility" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Order ID</label>
+                                    <input class="form-control form-control-sm display_order_id" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Select Type of Abnormality</label>
+                                    <input class="form-control form-control-sm display_abn_type" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">What will happen if it is left as it is?</label>
+                                    <input class="form-control form-control-sm display_abn_happen" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Root Cause (Human Weakness)</label>
+                                    <input class="form-control form-control-sm display_abn_rootcause" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <label style="font-size:10pt; font-weight:bold;">Input root cause analysis</label>
+                                    <textarea class="form-control form-control-sm display_input_root" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4 machine_input_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Input machine major part and machine sub part</label>
+                                    <textarea class="form-control form-control-sm display_input_machine" style="resize:vertical; min-height:50px;" disabled></textarea>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-2">
+                                    <label style="font-size:10pt; font-weight:bold;">Are this covered on AM checklist?</label>
+                                    <input class="form-control form-control-sm display_am_checklist" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Assigned Action</label>
+                                    <input class="form-control form-control-sm display_assigned_action" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <label style="font-size:10pt; font-weight:bold;">Status</label>
+                                    <input class="form-control form-control-sm display_status" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3 date_completed_container" style="display:none;">
+                                    <label style="font-size:10pt; font-weight:bold;">Date Completed</label>
+                                    <input class="form-control form-control-sm display_date_completed" type="text" disabled />
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Input countermeasure/corrective action<span style="color:red;">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="input_corrective_assigned" style="resize:vertical; min-height:50px;"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Target Completion<span style="color:red;">*</span></label>
+                                        <input class="form-control form-control-sm" type="date" id="date_target_assigned" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Attachment File ".pdf"</label>
+                                        <input type="file" class="form-control pdfFile-form" name="FormFileAssigned" id="pdfFile_assigned" accept=".pdf" required>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-1 px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <div class="form-group">
+                                        <label style="font-size:10pt; font-weight:bold;">Action picture<span style="color:red;">*</span></label>
+                                        <div class="ml-1" id="action_picture_section_assigned">
+                                            <div class="row">
+                                                <input type="file" name="file" accept=".jpg,.bmp,.png,.jfif" id="action_file_input_assigned" hidden />
+                                                <label for="action_file_input_assigned" class="actual-btnn">Choose file</label>
+                                            </div>
+                                            <div class="row">
+                                                <span id="action_file_name_display_assigned" style="width:100%;">No file chosen</span>
+                                            </div>
+                                            <button id="action_file_reset_btn_assigned" class="reset-btnn" style="display:none;">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center">
+                                    <label style="font-size:10pt; font-weight:bold;">Preview</label>
+                                    <img id="action_img_preview_assigned" src="" style="width:5rem; height:5rem; display:none;" />
+                                </div>
+                                <div class="col-6 col-md-3 col-lg-auto px-1 mx-lg-2 d-flex flex-column align-items-center text-center mb-2">
+                                    <label style="font-size:10pt; font-weight:bold;">Finding Picture</label>
+                                    <img class="display_file_img_findings" height="100" width="100" style="cursor:pointer" onclick="zoomFindingsPicture()" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-4">
+                        <div class="row d-flex justify-content-center">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <button class="btn btn-success btn-block" id="assigned_Data">
+                                    <i class="fas fa-pen"></i> Assigned
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- History -->
+                    <div class="col-12 mb-1">
+                        <div class="card card-outline">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                            <h1 class="card-title mb-0">History</h1>
+                                            <span class="toggle-arrow ml-auto toggleArrow" style="cursor:pointer">&#9660;</span>
+                                        </div>
+                                        <div class="col-12 card-body-wrapper cardBody">
+                                            <div class="modal-body p-0">
+                                                <div class="body_detail_appr"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: FINDINGS PICTURE ===== -->
+<div id="show_findings_picture" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa fa-info-circle"></i> Findings Picture</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mt-3 text-center">
+                    <div class="col-12">
+                        <img class="display_file_img_findings" style="width:100%">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ACTION PICTURE ===== -->
+<div id="show_action_picture" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa fa-info-circle"></i> Action Picture</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mt-3 text-center">
+                    <div class="col-12">
+                        <img class="display_file_img_action" style="width:100%">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: ALL PICTURE ===== -->
+<div id="show_all_picture" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa fa-info-circle"></i> Picture</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mt-3 text-center">
+                    <div class="col-6">
+                        <h5 class="text-bold mb-2">Before (Findings)</h5>
+                        <img id="img_before" style="width:80%">
+                        <div class="form-group">
+                            <label style="font-size:10pt; font-weight:bold;">Finding Remark<span style="color:red;">*</span></label>
+                            <textarea class="form-control form-control-sm" id="remark_findings" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h5 class="text-bold mb-2">After (Action)</h5>
+                        <img id="img_after" style="width:80%">
+                        <div class="form-group">
+                            <label style="font-size:10pt; font-weight:bold;">Countermeasure Remark<span style="color:red;">*</span></label>
+                            <textarea class="form-control form-control-sm" id="remark_countermeasure" maxlength="255" style="resize:vertical; min-height:50px;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: PDF VIEWER ===== -->
+<div id="view_pdf" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa fa-info-circle"></i> Attachment File</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdfViewer" src="" style="width:100%; height:700px; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== JAVASCRIPT KHUSUS HALAMAN INI ===== *@
+@section Scripts {
+<script>
+    // Semua JS tetap sama persis, tidak ada yang diubah
+    const CURRENT_USER_SESA = '@current_sesa';
+    const CURRENT_USER_NAME = '@current_name';
+
+    // ... (semua isi script sama persis seperti sebelumnya)
+    // Salin semua JS dari kode asli mulai dari fungsi fetchActionOwner sampai $("#assigned_Data").click
+    
+    function fetchActionOwner(facilityId, tagId) {
+        return $.ajax({ url: '@Url.Action("GetActionOwner", "MAT")', type: 'GET', dataType: 'json', data: { FacilityId: facilityId, TagId: tagId } });
+    }
+    function updateActionOwnerFields(fixedByType) {
+        var $actionOwnerDisplay = $('#action_owner_display');
+        var $actionOwnerSesaHidden = $('#action_owner_sesa_hidden');
+        var $validatedByContainer = $('#validated_by_container');
+        var $validatedByDisplay = $('#validated_by_display');
+        var $validatedBySesaHidden = $('#validated_by_sesa_hidden');
+        $actionOwnerDisplay.val(''); $actionOwnerSesaHidden.val('');
+        $validatedByContainer.slideUp(200); $validatedByDisplay.val(''); $validatedBySesaHidden.val('');
+        if (fixedByType === '--- Select ---') return;
+        var facilityId = $('#facility_id').val();
+        var tagId = $('#tpm_tag').val();
+        if (fixedByType === 'Fixed by myself') {
+            $actionOwnerDisplay.val(CURRENT_USER_NAME);
+            $actionOwnerSesaHidden.val(CURRENT_USER_SESA);
+            if (facilityId && tagId && facilityId !== '--- Select Facility ---' && tagId !== '--- Select TPM Tag ---') {
+                fetchActionOwner(facilityId, tagId)
+                    .done(function(response) {
+                        if (response && response.name) { $validatedByDisplay.val(response.name); $validatedBySesaHidden.val(response.sesaId); }
+                        else { $validatedByDisplay.val('Validator (Owner) not found'); $validatedBySesaHidden.val(''); }
+                        $validatedByContainer.slideDown(200);
+                    })
+                    .fail(function() { $validatedByDisplay.val('Error loading validator (owner)'); $validatedBySesaHidden.val(''); $validatedByContainer.slideDown(200); });
+            } else { $validatedByDisplay.val('Select Tag/Facility first'); $validatedByContainer.slideDown(200); }
+        } else if (fixedByType === 'Action owner') {
+            $validatedByContainer.slideUp(200);
+            if (facilityId && tagId && facilityId !== '--- Select Facility ---' && tagId !== '--- Select TPM Tag ---') {
+                fetchActionOwner(facilityId, tagId)
+                    .done(function(response) {
+                        if (response && response.name) { $actionOwnerDisplay.val(response.name); $actionOwnerSesaHidden.val(response.sesaId); }
+                        else { $actionOwnerDisplay.val('Owner not found'); $actionOwnerSesaHidden.val(''); }
+                    })
+                    .fail(function() { $actionOwnerDisplay.val('Error loading owner'); $actionOwnerSesaHidden.val(''); });
+            }
+        }
+    }
+    const toggleArrows = document.querySelectorAll('.toggleArrow');
+    toggleArrows.forEach(toggleArrow => {
+        const cardBody = toggleArrow.parentElement.nextElementSibling;
+        if (cardBody) { cardBody.style.display = 'none'; toggleArrow.innerHTML = '&#9650;'; }
+        toggleArrow.addEventListener('click', () => {
+            if (!cardBody) return;
+            const isCollapsed = cardBody.style.display === 'none';
+            cardBody.style.display = isCollapsed ? 'block' : 'none';
+            toggleArrow.innerHTML = isCollapsed ? '&#9660;' : '&#9650;';
+        });
+    });
+    function zoomAllImage(image, picture, findings, corrective) {
+        var alt_img = '@Url.Content("~/assets/notavailable.png")';
+        var basePath = '@Url.Content("~/upload/img/abn/")';
+        $("#show_all_picture").modal("show");
+        $("#img_before").attr("src", basePath + picture).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+        $("#img_after").attr("src", basePath + image).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+        $('#remark_findings').val(findings); $('#remark_countermeasure').val(corrective);
+    }
+    function viewPdf(attachment_file) { $("#view_pdf").modal("show"); $("#pdfViewer").attr("src", '@Url.Content("~/upload/img/abn/pdf/")' + attachment_file); }
+    function setMaxDate() {
+        const today = new Date();
+        const maxDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        const dateInput2 = document.getElementById('date_find');
+        if (dateInput2) dateInput2.max = maxDate;
+    }
+    function zoomFindingsPicture() { var alt_img = '@Url.Content("~/assets/notavailable.png")'; $("#show_findings_picture").modal("show"); $(".display_file_img_findings").attr("onerror", `this.onerror=null;this.src='${alt_img}';`); }
+    function zoomActionPicture()   { var alt_img = '@Url.Content("~/assets/notavailable.png")'; $("#show_action_picture").modal("show");  $(".display_file_img_action").attr("onerror", `this.onerror=null;this.src='${alt_img}';`); }
+    function loadAssignedAction(amChecklistValue, facilityId) {
+        var $assignedAction = $('#assigned_action');
+        $assignedAction.empty().append('<option value="">--- Loading ---</option>');
+        if (amChecklistValue && amChecklistValue !== '--- Select ---') {
+            $.ajax({
+                type: "POST", url: "@Url.Action("GetAssignedAction")", data: { amChecklist: amChecklistValue, facilityId: facilityId }, dataType: "json",
+                success: function(data) {
+                    $assignedAction.empty();
+                    $.each(data, function(i, item) { $assignedAction.append($('<option>', { value: item.code, text: item.name })); });
+                    if ($assignedAction.hasClass('select2')) $assignedAction.trigger('change');
+                },
+                error: function() { $assignedAction.empty().append('<option value="">--- Error Loading ---</option>'); if ($assignedAction.hasClass('select2')) $assignedAction.trigger('change'); }
+            });
+        } else { $assignedAction.empty().append('<option value="">Select AM Checklist</option>'); if ($assignedAction.hasClass('select2')) $assignedAction.trigger('change'); }
+    }
+    $('#am_checklist_fixed_add').on('change', function() {
+        var selectedValue = $(this).val();
+        var $actionFieldsContainers = $('.fixed-myself-fields.hideable-action-fields');
+        var $picPreviewContainers = $('.fixed-myself-fields.mt-3');
+        if (selectedValue === 'N') {
+            $actionFieldsContainers.slideDown(200); $picPreviewContainers.slideDown(200);
+            $('#input_corrective_action_add, #date_target_add, #action_file_input_add').prop('required', true);
+        } else {
+            $actionFieldsContainers.slideUp(200); $picPreviewContainers.slideUp(200);
+            $('#input_corrective_action_add').val('').prop('required', false);
+            $('#date_target_add').val('').prop('required', false);
+            $('#pdfFile_add, #action_file_input_add').val('').prop('required', false);
+            $('#action_file_name_display_add').text('No file chosen');
+            $('#action_file_reset_btn_add').hide();
+            $('#action_img_preview_add').hide();
+        }
+    });
+    $('#am_checklist_fixed_add').trigger('change');
+    $(document).ready(function() {
+        $('#fixed_myself').on('change', function() {
+            var selectedValue = $(this).val();
+            var $fields = $('.fixed-myself-fields');
+            var $amChecklist = $('#am_checklist_fixed_add');
+            if (selectedValue === 'Fixed by myself') {
+                $fields.slideDown(200);
+                $amChecklist.val('N').trigger('change').prop('disabled', true);
+                $('#abn_type_add, #abn_happen_add, #abn_rootcause_add, #input_root_add, #input_corrective_action_add, #action_file_input_add, #date_target_add').prop('required', true);
+                var abnType = $('#abn_type_add').val();
+                if (abnType === 'SOC' || abnType === 'HTA') { $('.machine_input_container_add').slideDown(200); $('#input_machine_add').prop('required', true); }
+                else { $('.machine_input_container_add').slideUp(200); $('#input_machine_add').prop('required', false); }
+            } else {
+                $fields.slideUp(200);
+                $fields.find('select, textarea, input[type="file"], input[type="date"], input[type="text"]').prop('required', false).val('');
+                $('#abn_type_add, #abn_happen_add, #abn_rootcause_add').val('--- Select ---').trigger('change');
+                $('.machine_input_container_add').hide();
+            }
+        });
+        $('#abn_type_add').on('change', function() {
+            if ($('#fixed_myself').val() === 'Fixed by myself') {
+                var specialTypes = ['SOC', 'HTA'];
+                if (specialTypes.includes($(this).val())) { $('.machine_input_container_add').slideDown(200); $('#input_machine_add').prop('required', true); }
+                else { $('.machine_input_container_add').slideUp(200); $('#input_machine_add').prop('required', false); }
+            }
+        });
+        $('#assigned_action').empty().append('<option value="">Select AM Checklist</option>');
+        $('#am_checklist').on('change', function() {
+            var selectedValue = $(this).val();
+            loadAssignedAction(selectedValue, $('#hidden_facility_id').val());
+            if (selectedValue === 'N') { $('.yes').slideDown(200); $('#input_corrective_action, #action_file_input_completed').prop('required', true); }
+            else { $('.yes').slideUp(200); $('#date_completed, #action_file_input_completed').val('').prop('required', false); }
+        });
+    });
+    $(document).ready(function() {
+        $('#status').on('change', function() {
+            if ($(this).val() === 'Closed') { $('.date_completed_container').slideDown(200); $('#date_completed').prop('required', true); }
+            else { $('.date_completed_container').slideUp(200); $('#date_completed').val('').prop('required', false); }
+        });
+        const urlParams = new URLSearchParams(window.location.search);
+        const order_id = urlParams.get('order_id');
+        if (order_id) validateAndOpenModal(order_id);
+        $('#abn_type').on('change', function() {
+            var selectedType = $(this).val();
+            var $machineContainer = $('.machine_input_container');
+            var $hideableFields = $('.abn-hideable-field');
+            if (selectedType === 'SRP') {
+                $hideableFields.slideUp(200); $hideableFields.find('select, input, textarea').prop('required', false);
+                $machineContainer.hide(); $('#input_machine').prop('required', false);
+            } else {
+                $hideableFields.slideDown(200);
+                if (['SOC','HTA'].includes(selectedType)) { $machineContainer.slideDown(200); $('#input_machine').prop('required', true); }
+                else { $machineContainer.slideUp(200); $('#input_machine').prop('required', false); }
+            }
+        });
+        $('#tpm_tag').on('change', function() {
+            var selectedType = $(this).val();
+            var selectedName = $(this).find('option:selected').data('name');
+            var colorMap = { 'White': 'white', 'Green': 'green', 'Red': 'red', 'Yellow': 'yellow' };
+            var selectedColor = colorMap[selectedType];
+            var textColor = (selectedType === 'White' || selectedType === 'Yellow') ? 'black' : 'white';
+            $('#tag_id').val(selectedName).css(selectedColor ? { 'background-color': selectedColor, 'color': textColor, 'font-weight': 'bold' } : { 'background-color': '', 'color': 'black', 'font-weight': 'normal' });
+            if (selectedType === 'White') { $('#sesa_op_container').slideDown(200); $('#sesa_op').prop('required', true); }
+            else { $('#sesa_op_container').slideUp(200); $('#sesa_op').prop('required', false); }
+        });
+        $('#line').on('change', function() {
+            var selectedLine = $(this).val();
+            var $stationDropdown = $('#station');
+            $stationDropdown.empty().append('<option value="">--- Loading stations ---</option>');
+            if (selectedLine && selectedLine !== '--- Select Line/Cell no ---') {
+                $.ajax({
+                    url: '@Url.Action("GetStationsByLine", "MAT")', type: 'GET', dataType: 'json', data: { line_no: selectedLine },
+                    success: function(data) {
+                        $stationDropdown.empty().append('<option value="">--- Select Station ID ---</option>');
+                        $.each(data, function(i, station) { $stationDropdown.append($('<option>', { value: station.code, text: station.code })); });
+                        $stationDropdown.trigger('change');
+                    },
+                    error: function() { $stationDropdown.empty().append('<option value="">--- Error loading data ---</option>'); }
+                });
+            } else { $stationDropdown.empty().append('<option value="">--- Select Line/Cell no first ---</option>'); $stationDropdown.trigger('change'); }
+        });
+        $('.date_completed_container').hide();
+        $('#sesa_op_container').hide();
+        $('.machine_input_container').hide();
+    });
+    $(document).ready(function() {
+        GenerateDate().done(function() { getTable(); });
+        $('#date_from, #date_to, #filter_facility').on('change', function() { $('#ABNTableContainer').hide(); $('#spinner_loading').show(); getTable(); });
+    });
+    $(document).ready(function() {
+        function applySelect2(selector, parentModal = null) { $(selector).select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: parentModal }); }
+        applySelect2('#filter_facility');
+        $('#modal_add').on('shown.bs.modal', function() { applySelect2('#modal_add .select2', $('#modal_add')); });
+        $('#modal_action').on('shown.bs.modal', function() { applySelect2('#modal_action .select2', $('#modal_action')); });
+        $('#modal_validator').on('shown.bs.modal', function() { applySelect2('#modal_validator .select2', $('#modal_validator')); });
+    });
+    $('#fixed_myself, #facility_id, #tpm_tag').on('change', function() { updateActionOwnerFields($('#fixed_myself').val()); });
+    function addData() { setMaxDate(); updateActionOwnerFields($('#fixed_myself').val()); $('#modal_add').modal('show'); }
+    $.fn.clearModalInputs = function() {
+        const $modal = this;
+        $modal.find('input:not([type="hidden"]), textarea').val('');
+        $modal.find('.select2').each(function() {
+            const $select = $(this);
+            $select.val('').trigger('change');
+            if ($select.val() !== '') $select.val($select.find('option:first').val()).trigger('change');
+        });
+        return this;
+    };
+    function actionOwner(order_id)      { $('#modal_action').clearModalInputs(); fetchDetail(order_id);  setMaxDate(); $('#modal_action').modal('show'); }
+    function actionOwner2(order_id)     { $('#modal_action').clearModalInputs(); fetchDetail2(order_id); setMaxDate(); $('#modal_action').modal('show'); }
+    function actionValidator(order_id)  { fetchDetail(order_id); $('#modal_validator').modal('show'); }
+    function actionAssigned(order_id)   { fetchDetail(order_id); $('#modal_assigned').modal('show'); }
+    function actionDetailABN(order_id)  { fetchDetail(order_id); $('#modal_detail_abn').modal('show'); }
+    function fetchDetailABNHistory(order_id) {
+        $.ajax({ url: "@Url.Action("GetDetailHistory", "MAT")", type: 'GET', data: { order_id: order_id },
+            success: function(data) { $('.body_detail_appr').html(data); },
+            error: function(err) { console.log(err); }
+        });
+    }
+    function fetchDetail(order_id) {
+        $.ajax({
+            url: '@Url.Action("GetABNDetail", "MAT")', type: 'GET', data: { order_id: order_id },
+            success: function(data) {
+                $('#hidden_facility_id').val(data.facility_id); $('#order_id').val(data.order_id);
+                $('.display_facility').val(data.facility); $('.display_order_id').val(data.order_id);
+                $('.display_abn_type').val(data.abn_type); $('.display_abn_happen').val(data.abn_happen);
+                $('.display_abn_rootcause').val(data.abn_rootcause); $('.display_input_root').val(data.rootcause_analysis);
+                $('.display_input_machine').val(data.machine_part);
+                var $machineContainer = $('.machine_input_container');
+                (data.machine_part && data.machine_part.trim() !== "") ? $machineContainer.show() : $machineContainer.hide();
+                $('.display_am_checklist').val(data.am_checklist); $('.display_assigned_action').val(data.assigned_name);
+                $('.display_input_corrective_action').val(data.corrective);
+                $('.display_date_target').val(data.target_completion && data.target_completion !== '-' ? new Date(data.target_completion).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '');
+                $('.display_status').val(data.status_action);
+                $('.display_date_completed').val(data.completed_date && data.completed_date !== '-' ? new Date(data.completed_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '');
+                if (data.date_find) { var findDateOnly = data.date_find.split('T')[0]; $('#date_completed, #date_target_add, #date_target_assigned').removeAttr('max').attr('min', findDateOnly); }
+                (data.status_action && data.status_action.trim() === "Closed") ? $('.date_completed_container').show() : $('.date_completed_container').hide();
+                var basePath = '@Url.Content("~/upload/img/abn/")';
+                var alt_img  = '@Url.Content("~/assets/notavailable.png")';
+                $(".display_file_img_findings").attr("src", basePath + data.picture).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+                $(".file_img_findings").attr("src",         basePath + data.picture).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+                $(".display_file_img_action").attr("src",   basePath + data.image).attr("onerror",   `this.onerror=null;this.src='${alt_img}';`);
+            },
+            error: function() { alert('Error fetching data.'); }
+        });
+        fetchDetailABNHistory(order_id);
+    }
+    function fetchDetail2(order_id) {
+        $.ajax({
+            url: '@Url.Action("GetABNDetail", "MAT")', type: 'GET', data: { order_id: order_id },
+            success: function(data) {
+                $('#hidden_facility_id').val(data.facility_id); $('#order_id').val(data.order_id);
+                $('.display_facility').val(data.facility); $('.display_order_id').val(data.order_id);
+                $('#abn_type').val(data.abn_type_id).trigger('change');
+                $('#abn_happen').val(data.abn_happen).trigger('change');
+                $('#abn_rootcause').val(data.abn_rootcause_id).trigger('change');
+                $('#am_checklist').val(data.am_checklist).trigger('change').prop('disabled', true);
+                $('#status_for_action').val(data.status_action).trigger('change');
+                $('#input_root').val(data.rootcause_analysis); $('#input_machine').val(data.machine_part);
+                $('.yes, .show-if-ada').slideDown(200);
+                $('#input_corrective_action').val(data.corrective); $('#date_target').val(data.date_target);
+                var $machineContainer = $('.machine_input_container');
+                (data.machine_part && data.machine_part.trim() !== "") ? $machineContainer.show() : $machineContainer.hide();
+                $('.display_am_checklist').val(data.am_checklist); $('.display_assigned_action').val(data.assigned_name);
+                $('.display_input_corrective_action').val(data.corrective); $('.display_date_target').val(data.target_completion);
+                $('.display_status').val(data.status_action); $('.display_date_completed').val(data.completed_date);
+                if (data.date_find) { var findDateOnly = data.date_find.split('T')[0]; $('#date_completed, #date_target_add, #date_target_assigned').removeAttr('max').attr('min', findDateOnly); }
+                (data.status_action && data.status_action.trim() === "Closed") ? $('.date_completed_container').show() : $('.date_completed_container').hide();
+                var basePath = '@Url.Content("~/upload/img/abn/")';
+                var alt_img  = '@Url.Content("~/assets/notavailable.png")';
+                $(".display_file_img_findings").attr("src", basePath + data.picture).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+                $(".file_img_findings").attr("src",         basePath + data.picture).attr("onerror", `this.onerror=null;this.src='${alt_img}';`);
+                $(".display_file_img_action").attr("src",   basePath + data.image).attr("onerror",   `this.onerror=null;this.src='${alt_img}';`);
+            },
+            error: function() { alert('Error fetching data.'); }
+        });
+        fetchDetailABNHistory(order_id);
+    }
+    function GenerateDate() {
+        var deferred = $.Deferred();
+        $.ajax({
+            url: "@Url.Action("GetDateSO", "MAT")", type: 'get', dataType: 'json',
+            success: function(response) {
+                if (response && response.fromDate && response.currentDate) { $('#date_from').val(response.fromDate); $('#date_to').val(response.currentDate); deferred.resolve(); }
+                else { Swal.fire({ icon: 'error', title: 'Error', text: 'Week is not available' }); deferred.reject(); }
+            },
+            error: function() { Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to read week' }); deferred.reject(); }
+        });
+        return deferred.promise();
+    }
+    function validateAndOpenModal(order_id) {
+        $('#spinner_loading').show();
+        $.ajax({
+            url: '@Url.Action("ValidateAndGetAction", "MAT")', type: 'GET', data: { order_id: order_id },
+            success: function(response) {
+                $('#spinner_loading').hide();
+                if (response.success) {
+                    switch (response.actionToRun) {
+                        case 'actionOwner':        actionOwner(order_id); break;
+                        case 'actionOwnerClarify': actionOwner2(order_id); break;
+                        case 'actionAssigned':     actionAssigned(order_id); break;
+                        case 'actionValidator':    actionValidator(order_id); break;
+                        case 'actionDetailABN':    actionDetailABN(order_id); break;
+                        default: console.log('Action not permitted or not found.');
+                    }
+                } else { Swal.fire({ icon: 'error', title: 'Access denied', text: response.message }); }
+            },
+            error: function(xhr, status, error) { $('#spinner_loading').hide(); Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memvalidasi status. ' + error }); }
+        });
+    }
+    function getTable() {
+        var date_from   = $('#date_from').val();
+        var date_to     = $('#date_to').val();
+        var facility_id = $('#filter_facility').val();
+        $('#ABNTableContainer').hide(); $('#spinner_loading').show();
+        if (!date_from || !date_to || !facility_id) { $('#spinner_loading').hide(); return; }
+        if ($.fn.DataTable.isDataTable('#tbl_details_filter')) $('#tbl_details_filter').DataTable().clear().destroy();
+        $.ajax({
+            url: '@Url.Action("GetABN", "MAT")', type: 'GET', data: { date_from, date_to, facility_id },
+            success: function(result) {
+                $('#ABNTableContainer').html(result).show();
+                $('#tbl_details_filter').DataTable({ responsive: false, autoWidth: false, searching: true, paging: true, ordering: true, info: true, order: [[0, 'asc']] });
+            },
+            error: function() { $('#ABNTableContainer').html('<div class="alert alert-danger">Error loading data. Please try again.</div>').show(); },
+            complete: function() { $('#spinner_loading').hide(); }
+        });
+    }
+
+    // ===== IMAGE PREVIEW HANDLERS =====
+    function setupImagePreview(inputId, previewId, displayNameId, resetBtnId) {
+        const preview  = document.getElementById(previewId);
+        const imgpath  = document.getElementById(inputId);
+        const altImg   = '../assets/notavailable.png';
+        if (!imgpath || !preview) return;
+        preview.src = altImg;
+        preview.style.display = previewId === 'finding_img_preview' ? 'block' : 'none';
+        imgpath.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) { preview.style.display = 'none'; return; }
+            var file = this.files[0];
+            var imgsize = Math.ceil(file.size / 1024 / 1024);
+            if (imgsize > 1) {
+                Swal.fire({ icon: 'error', title: 'Error', text: `The selected image size is ${imgsize} MB. Please choose another photo less than 1 MB` });
+                this.value = ''; preview.style.display = 'none';
+                if (displayNameId) document.getElementById(displayNameId).textContent = 'No file chosen';
+                return;
+            }
+            const reader = new FileReader();
+            if (displayNameId) document.getElementById(displayNameId).textContent = file.name;
+            if (resetBtnId) document.getElementById(resetBtnId).style.display = 'inline';
+            reader.addEventListener('load', function() { preview.src = this.result; preview.style.display = 'block'; });
+            reader.readAsDataURL(file);
+        });
+        if (resetBtnId) {
+            const resetBtn = document.getElementById(resetBtnId);
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    document.getElementById(inputId).value = '';
+                    if (displayNameId) document.getElementById(displayNameId).textContent = 'No file chosen';
+                    preview.src = altImg; preview.style.display = 'none'; this.style.display = 'none';
+                });
+            }
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        setupImagePreview('finding_file_input',        'finding_img_preview',          'finding_file_name_display',          null);
+        setupImagePreview('action_file_input_add',      'action_img_preview_add',       'action_file_name_display_add',       'action_file_reset_btn_add');
+        setupImagePreview('action_file_input_completed','action_img_preview_completed', 'action_file_name_display_completed', null);
+        setupImagePreview('action_file_input_assigned', 'action_img_preview_assigned',  'action_file_name_display_assigned',  null);
+    });
+
+    // ===== SUBMIT: CREATE DATA =====
+    $("#create_Data").click(function() {
+        var date_find = $('#date_find').val(), facility_id = $('#facility_id').val(), line = $('#line').val();
+        var station = $('#station').val(), tpm_tag = $('#tpm_tag').val(), sesa_op = $('#sesa_op').val();
+        var finding = $('#finding').val(), fileInput = $('#finding_file_input')[0].files[0];
+        var fixed_myself = $('#fixed_myself').val();
+        var abn_type = $('#abn_type_add').val(), abn_happen = $('#abn_happen_add').val();
+        var abn_rootcause = $('#abn_rootcause_add').val(), input_root = $('#input_root_add').val();
+        var input_machine = $('#input_machine_add').val(), input_corrective_action = $('#input_corrective_action_add').val();
+        var fileInputAction = $('#action_file_input_add')[0].files[0], date_target = $('#date_target_add').val();
+        var action_owner_sesa = $('#action_owner_sesa_hidden').val(), validated_by_sesa = $('#validated_by_sesa_hidden').val();
+        var fileInputPdf = $('#pdfFile_add')[0].files[0];
+        var am_checklist, assigned_action, status_for_action, date_completed;
+
+        if (fixed_myself === 'Fixed by myself') {
+            if (abn_type === '--- Select ---' || abn_happen === '--- Select ---' || abn_rootcause === '--- Select ---' || !input_root) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in all Root Cause requirements!' }); return; }
+            if (!input_corrective_action) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in the Countermeasure / Corrective Action!' }); return; }
+            if (!fileInputAction) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please upload the Action Picture!' }); return; }
+            if (!date_target) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please select the Target Completion Date!' }); return; }
+            if ((abn_type === 'SOC' || abn_type === 'HTA') && !input_machine) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please fill in Machine Major/Sub Part!' }); return; }
+            am_checklist = 'N'; assigned_action = 'SELF'; status_for_action = 'Open'; date_completed = date_target;
+        }
+
+        if (!date_find || facility_id === '--- Select Facility ---' || !line || !station || !tpm_tag || !finding || !fileInput) {
+            Swal.fire({ icon: 'error', title: 'Incomplete Finding', text: 'Please fill in all basic Finding fields and upload the finding picture!' }); return;
+        }
+
+        am_checklist      = (fixed_myself === 'Fixed by myself') ? 'N' : $('#am_checklist_fixed_add').val();
+        assigned_action   = (fixed_myself === 'Fixed by myself') ? 'SELF' : null;
+        status_for_action = (fixed_myself === 'Fixed by myself') ? 'Open' : 'Closed';
+        date_completed    = (fixed_myself === 'Fixed by myself') ? date_target : null;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const image = new Image();
+            image.src = event.target.result;
+            image.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = image.width; canvas.height = image.height;
+                ctx.drawImage(image, 0, 0);
+                canvas.toBlob(function(blob) {
+                    const formData = new FormData();
+                    formData.append('file', blob, fileInput.name);
+                    if (fileInputPdf) formData.append('FormFileAdd', fileInputPdf);
+                    ['date_find','facility_id','line','station','tpm_tag','sesa_op','finding','fixed_myself',
+                     'abn_type','abn_happen','abn_rootcause','input_root','input_machine','input_corrective_action',
+                     'validated_by_sesa','action_owner_sesa','am_checklist','assigned_action','status_for_action',
+                     'date_completed','date_target'].forEach(key => {
+                        formData.append(key, eval(key) ?? '');
+                    });
+                    if (fileInputAction) formData.append('file_action', fileInputAction);
+                    Swal.fire({
+                        title: 'Add New Abnormality?', text: "Are you sure for this action?", icon: 'warning',
+                        showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#dc3545',
+                        confirmButtonText: 'Yes!', cancelButtonText: 'No!', showLoaderOnConfirm: true,
+                        preConfirm: () => new Promise(resolve => {
+                            $.ajax({
+                                type: "POST", url: "@Url.Action("AddInput", "MAT")", data: formData, processData: false, contentType: false,
+                                success: function(data) {
+                                    if (data.success) Swal.fire('Added!', 'New Data has been Added.', 'success').then(() => location.reload());
+                                    else Swal.fire('Error!', data.message, 'error');
+                                    resolve();
+                                },
+                                error: function() { Swal.fire('Error!', 'There was an error adding the data.', 'error'); resolve(); },
+                                complete: function() { $('#spinner_loading').hide(); }
+                            });
+                        })
+                    });
+                }, 'image/jpeg', 0.30);
+            };
+        };
+        reader.readAsDataURL(fileInput);
+    });
+
+    // ===== SUBMIT: ACTION DATA =====
+    $("#action_Data").click(function() {
+        var order_id = $('#order_id').val(), facility_id = $('#hidden_facility_id').val(), abn_type = $('#abn_type').val();
+        var abn_happen = $('#abn_happen').val(), abn_rootcause = $('#abn_rootcause').val(), input_root = $('#input_root').val();
+        var input_machine = $('#input_machine').val(), am_checklist = $('#am_checklist').val();
+        var assigned_action = $('#assigned_action').val(), input_corrective_action = $('#input_corrective_action').val();
+        var date_target = $('#date_target').val(), status_for_action = "Open", date_completed = $('#date_completed').val();
+        var fileInput = $('#action_file_input_completed')[0].files[0], fileInputPdf = $('#pdfFile')[0].files[0];
+        if (!facility_id || !order_id || abn_type === '--- Select ---') { Swal.fire({ icon: 'error', title: 'Error', text: 'Please Fill in All the requirement first!' }); return; }
+        var formData = new FormData();
+        ['file:fileInput','file_pdf:fileInputPdf','order_id','facility_id','abn_type','abn_happen','abn_rootcause',
+         'input_root','input_machine','am_checklist','assigned_action','input_corrective_action',
+         'date_target','status_for_action','date_completed'].forEach(key => {
+            var parts = key.split(':');
+            formData.append(parts[0], parts[1] ? eval(parts[1]) : eval(parts[0]));
+        });
+        Swal.fire({
+            title: 'Submit Action?', icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#28a745', cancelButtonColor: '#dc3545', confirmButtonText: 'Yes!', cancelButtonText: 'No!', showLoaderOnConfirm: true,
+            preConfirm: () => new Promise(resolve => {
+                $.ajax({
+                    type: "POST", url: "@Url.Action("AddInput2", "MAT")", data: formData, processData: false, contentType: false,
+                    success: function(data) {
+                        if (data.success) Swal.fire('Added!', 'Data has been updated.', 'success').then(() => { $('#modal_action').modal('hide'); getTable(); });
+                        else Swal.fire('Error!', data.message, 'error');
+                        resolve();
+                    },
+                    error: function() { Swal.fire('Error!', 'There was an error.', 'error'); resolve(); },
+                    complete: function() { $('#spinner_loading').hide(); }
+                });
+            })
+        });
+    });
+
+    // ===== SUBMIT: VALIDATOR DATA =====
+    $("#validator_Data").click(function() {
+        var order_id = $('#order_id').val(), remark = $('#remark').val();
+        var status = $('#status').val(), date_completed = $('#date_completed_val').val();
+        if (!order_id?.trim() || !remark?.trim() || !status?.trim()) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please Fill in All the requirement first!' }); return; }
+        var formData = new FormData();
+        formData.append('order_id', order_id); formData.append('remark', remark);
+        formData.append('status', status); formData.append('date_completed', date_completed);
+        Swal.fire({
+            title: 'Validate?', icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#28a745', cancelButtonColor: '#dc3545', confirmButtonText: 'Yes!', cancelButtonText: 'No!', showLoaderOnConfirm: true,
+            preConfirm: () => new Promise(resolve => {
+                $.ajax({
+                    type: "POST", url: "@Url.Action("AddInput3", "MAT")", data: formData, processData: false, contentType: false,
+                    success: function(data) {
+                        if (data.success) Swal.fire('Done!', 'Data has been validated.', 'success').then(() => { $('#modal_validator').modal('hide'); getTable(); });
+                        else Swal.fire('Error!', data.message, 'error');
+                        resolve();
+                    },
+                    error: function() { Swal.fire('Error!', 'There was an error.', 'error'); resolve(); },
+                    complete: function() { $('#spinner_loading').hide(); }
+                });
+            })
+        });
+    });
+
+    // ===== SUBMIT: ASSIGNED DATA =====
+    $("#assigned_Data").click(function() {
+        var order_id = $('#order_id').val(), input_corrective = $('#input_corrective_assigned').val();
+        var date_target = $('#date_target_assigned').val();
+        var fileInput = $('#action_file_input_assigned')[0].files[0], fileInputPdf = $('#pdfFile_assigned')[0].files[0];
+        if (!order_id || !input_corrective || !date_target || !fileInput || !fileInputPdf) { Swal.fire({ icon: 'error', title: 'Error', text: 'Please Fill in All the requirement first!' }); return; }
+        var formData = new FormData();
+        formData.append('order_id', order_id); formData.append('input_corrective', input_corrective);
+        formData.append('date_target', date_target); formData.append('file', fileInput); formData.append('file_pdf', fileInputPdf);
+        Swal.fire({
+            title: 'Submit Assigned?', icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#28a745', cancelButtonColor: '#dc3545', confirmButtonText: 'Yes!', cancelButtonText: 'No!', showLoaderOnConfirm: true,
+            preConfirm: () => new Promise(resolve => {
+                $.ajax({
+                    type: "POST", url: "@Url.Action("AddAssigned", "MAT")", data: formData, processData: false, contentType: false,
+                    success: function(data) {
+                        if (data.success) Swal.fire('Done!', 'Assigned data submitted.', 'success').then(() => { $('#modal_assigned').modal('hide'); getTable(); });
+                        else Swal.fire('Error!', data.message, 'error');
+                        resolve();
+                    },
+                    error: function() { Swal.fire('Error!', 'There was an error.', 'error'); resolve(); },
+                    complete: function() { $('#spinner_loading').hide(); }
+                });
+            })
+        });
+    });
+</script>
+}

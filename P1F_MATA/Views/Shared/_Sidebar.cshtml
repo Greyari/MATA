@@ -1,0 +1,85 @@
+@using P1F_MATA.Function
+@using System.Security.Claims
+@{
+    string user_level = User.FindFirst("P1F_MATA_level")?.Value;
+    string sesa_id    = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string name       = User.FindFirst("P1F_MATA_name")?.Value;
+    var userLevels    = user_level?.Split(';') ?? new string[0];
+}
+
+<aside class="main-sidebar sidebar-dark-success elevation-5">
+    <a href="#" data-widget="pushmenu" class="brand-link text-center" role="button">
+        <img id="sidebar-brand-img"
+             src="@Url.Content("~/assets/logos.png")"
+             alt="Schneider Logo"
+             style="opacity:.8; transition:all 0.3s ease; max-height:35px; cursor:pointer;">
+    </a>
+
+    <div class="sidebar d-flex flex-column" style="height: calc(100% - 57px);">
+        <nav class="mt-3 flex-grow-1 overflow-auto">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+
+                @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin") || userLevels.Contains("mat"))
+                {
+                    <li class="nav-header">Machine Abnormality</li>
+
+                    @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin"))
+                    {
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "Dashboard")" class="nav-link @Html.IsActive("Dashboard", "Index")">
+                                <i class="nav-icon fa fa-line-chart"></i>
+                                <p>Dashboard</p>
+                            </a>
+                        </li>
+                    }
+
+                    @if (userLevels.Contains("mat") || userLevels.Contains("superadmin") || userLevels.Contains("mat_admin"))
+                    {
+                        <li class="nav-item">
+                            <a href="@Url.Action("Observation", "MAT")" class="nav-link @Html.IsActive("MAT", "Observation")">
+                                <i class="nav-icon fa fa-users"></i>
+                                <p>MATA</p>
+                            </a>
+                        </li>
+                    }
+                }
+
+                @if (userLevels.Contains("superadmin"))
+                {
+                    <li class="nav-header">Master Data</li>
+                    <li class="nav-item">
+                        <a href="@Url.Action("Index", "UserManagement")" class="nav-link @Html.IsActive("UserManagement", "Index")">
+                            <i class="nav-icon fas fa-user"></i>
+                            <p>User Management</p>
+                        </a>
+                    </li>
+                }
+
+                <li class="nav-header">Settings</li>
+                <li class="nav-item">
+                    <a href="@Url.Action("Index", "ChangePassword")" class="nav-link @Html.IsActive("ChangePassword", "Index")">
+                        <i class="nav-icon fas fa-key"></i>
+                        <p>Change Password</p>
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+
+        <!-- User Info Card -->
+        <div class="sidebar-user-card p-2 d-flex align-items-center justify-content-between rounded mt-auto">
+            <div class="d-flex align-items-center gap-2" style="overflow:hidden;">
+                <div class="sidebar-user-avatar pr-2">
+                    <i class="fas fa-user-circle fa-2x text-white"></i>
+                </div>
+                <div class="sidebar-user-info" style="overflow:hidden; line-height:1.3;">
+                    <span class="d-block text-white text-truncate" style="font-size:0.78em; font-weight:600;">@name</span>
+                    <span class="d-block text-white-50 text-truncate" style="font-size:0.70em;">@sesa_id</span>
+                </div>
+            </div>
+            <a href="#" id="btn-logout" class="text-white ms-2" title="Logout" style="flex-shrink:0;">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</aside>
