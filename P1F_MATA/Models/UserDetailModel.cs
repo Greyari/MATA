@@ -9,9 +9,6 @@ namespace P1F_MATA.Models
         public string? apps { get; set; }
         public string? plant { get; set; }
         public string? id { get; set; }
-
-
-
         public string? email { get; set; }
         public string? level { get; set; }
         public string? role { get; set; }

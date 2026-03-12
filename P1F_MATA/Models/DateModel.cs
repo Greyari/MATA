@@ -8,8 +8,6 @@ namespace P1F_MATA.Models
     {
         public string FromDate { get; set; } = string.Empty;
         public string CurrentDate { get; set; } = string.Empty;
-
-
     }
 }
 

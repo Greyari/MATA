@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using P1F_MATA.Function;
 using P1F_MATA.Models;
-using P1F_MATA.Service;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using System.Security.Claims;
@@ -19,8 +18,6 @@ namespace P1F_MATA.Controllers
 
         public UserManagement(
             ApplicationDbContext context,
-            ImportExportFactory importExportFactory,
-            ILogger<UserManagement> logger,
             DatabaseAccessLayer db)
         {
             _context = context;

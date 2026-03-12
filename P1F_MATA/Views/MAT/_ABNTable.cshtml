@@ -34,19 +34,6 @@
                 @(string.IsNullOrWhiteSpace(item.operator_sesa) ? "-" : item.operator_sesa)
             </td>
             <td class="text-center align-middle">@item.findings</td>
-            @* <td class="text-center align-middle">
-            <div class="card-overlap-container" style="cursor: pointer" onclick="zoomAllImage('@item.image', '@item.picture', '@item.findings', '@item.corrective')">
-                    @if (!string.IsNullOrEmpty(item.image))
-                    {
-                    <img class="img-top" src="@Url.Content("~/upload/img/abn/")@item.image" height="100" width="100" onerror="this.onerror=null; this.src='@Url.Content("~/assets/notavailable.png")';" />
-                    }
-
-                    @if (!string.IsNullOrEmpty(item.picture))
-                    {
-                    <img class="img-bottom" src="@Url.Content("~/upload/img/abn/")@item.picture" height="100" width="100" onerror="this.onerror=null; this.src='@Url.Content("~/assets/notavailable.png")';" />
-                    }
-                </div>
-            </td> *@
             <td class="text-center align-middle">
                 @{
                     string defaultImagePath = Url.Content("~/assets/notavailable.png");
@@ -147,51 +134,5 @@
                     <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
                 }
             </td>
-        @* <td class="text-center align-middle">
-
-            @{
-                var currentSesaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                bool isWaitingValidation = item.status_request == "1";
-                bool isDone = item.status_request == "2";
-                bool isRequestor = item.requestor_sesa == currentSesaId;
-                bool isValidator = item.validator_sesa == currentSesaId;
-                bool isClarify = item.status_request == "4";
-                bool canEditSelfFixedWaiting = isWaitingValidation && isRequestor;
-
-                bool canEditClarify = isClarify && isRequestor;
-            }
-
-            @if (canEditSelfFixedWaiting || canEditClarify)
-            {
-                <button class="btn btn-warning btn-sm" onclick="actionDetailABN('@item.order_id')">
-                    <span class="fa fa-edit"></span>
-                </button>
-            }
-            else if (isWaitingValidation && isValidator)
-            {
-                <button class="btn btn-warning" onclick="actionValidator('@item.order_id')">
-                    <span class="fa fa-edit"></span>
-                </button>
-            }
-            else if (item.status_request == "0" && item.owner_sesa == currentSesaId)
-            {
-                <button class="btn btn-warning" onclick="actionOwner('@item.order_id')">
-                    <span class="fa fa-edit"></span>
-                </button>
-            }
-            else if (item.status_request == "3" && item.assigned_sesa == currentSesaId)
-            {
-                <button class="btn btn-warning" onclick="actionAssigned('@item.order_id')">
-                    <span class="fa fa-edit"></span>
-                </button>
-            }
-            else
-            {
-                <button class="btn btn-secondary btn-sm" onclick="actionDetailABN('@item.order_id')">
-                    <span class="fa fa-eye"></span>
-                </button>
-            }
-        </td> *@
-    </tr>
-}
+        </tr>
+    }
