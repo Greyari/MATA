@@ -5,26 +5,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using P1F_MATA.Function;
 using P1F_MATA.Models;
-using Microsoft.Data.SqlClient;
 
 namespace P1F_MATA.Controllers
 {
     public class HomeController : Controller
     {
-        // ===================================================================
-        // DEPENDENCY INJECTION
-        // ===================================================================
-        // private readonly ILogger<HomeController> _logger;
-        // private readonly IConfiguration _configuration;
         private readonly DatabaseAccessLayer _db;
 
-        public HomeController(
-            // ILogger<HomeController> logger,
-            // IConfiguration configuration,
-            DatabaseAccessLayer db)
+        public HomeController(DatabaseAccessLayer db)
         {
-            // _logger = logger;
-            // _configuration = configuration;
             _db = db;
         }
 
@@ -32,67 +21,53 @@ namespace P1F_MATA.Controllers
         // HALAMAN HOME
         // ===================================================================
 
-        public async Task<IActionResult> Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
 
         // ===================================================================
-        // PROSES LOGIN
+        // QR / LINK AKSES DARI LUAR
         // ===================================================================
 
         /// <summary>
         /// Endpoint untuk akses dari luar (scan QR, link email, dll).
-        /// Menyimpan order_id ke cookie sementara, lalu arahkan ke login.
-        /// Cookie berlaku selama 5 menit.
+        /// Simpan order_id ke cookie 5 menit, lalu redirect ke login.
         /// </summary>
         [AllowAnonymous]
         public IActionResult TPM(string order_id)
         {
-            // Simpan order_id sementara (berlaku 5 menit)
-            var cookieOptions = new CookieOptions { Expires = DateTime.Now.AddMinutes(5) };
             if (!string.IsNullOrEmpty(order_id))
-                Response.Cookies.Append("Pending_OrderId", order_id, cookieOptions);
+                Response.Cookies.Append("Pending_OrderId", order_id,
+                    new CookieOptions { Expires = DateTime.Now.AddMinutes(5) });
 
-            return RedirectToAction("Login", "Home");
+            return RedirectToAction("Index", "Home");
         }
 
         /// <summary>
         /// Redirect engine setelah login berhasil.
-        /// Jika ada titipan order_id di cookie → langsung ke Observation.
-        /// Jika tidak → redirect ke dashboard sesuai level user.
+        /// Jika ada order_id di cookie → ke Observation. Jika tidak → ke MAT.
         /// </summary>
         public IActionResult Open()
         {
-            // Cek apakah ada order_id yang "dititipkan" sebelum login
             string pendingOrderId = Request.Cookies["Pending_OrderId"];
             if (!string.IsNullOrEmpty(pendingOrderId))
             {
-                // Hapus cookie agar tidak redirect berulang (looping)
                 Response.Cookies.Delete("Pending_OrderId");
-
-                // Arahkan langsung ke detail observasi
                 return RedirectToAction("Observation", "MAT", new { order_id = pendingOrderId });
             }
 
-            // Tidak ada titipan → redirect sesuai level akses
-            string userLevel = User.FindFirst("P1F_MATA_level")?.Value;
+            string userLevel = User.FindFirst("P1F_MATA_level")?.Value ?? "";
             string[] levels  = userLevel.Split(';');
 
             if (levels.Contains("mat_admin") || levels.Contains("mat") || levels.Contains("superadmin"))
-                return RedirectToAction("Observation", "Mat");
+                return RedirectToAction("Observation", "MAT");
 
             return RedirectToAction("Index", "Home");
         }
 
         // ===================================================================
-        // MANUAL LOGIN (alternatif tanpa SSO)
+        // LOGIN
         // ===================================================================
 
-        /// <summary>
-        /// Login manual menggunakan sesa_id dan password.
-        /// Password akan di-hash MD5 sebelum dicocokkan dengan database.
-        /// </summary>
+        /// <summary>Login manual: validasi sesa_id + password, buat claims, redirect.</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginModel user)
@@ -100,96 +75,55 @@ namespace P1F_MATA.Controllers
             if (!ModelState.IsValid)
                 return View("Index");
 
-            var auth = new Authentication();
+            string hashedPassword = new Authentication().MD5Hash(user.password);
+            var userDb = await _db.ValidateLogin(user.sesa_id, hashedPassword);
 
-            using (SqlConnection conn = new SqlConnection(_db.GetConnection()))
+            if (userDb == null)
             {
-                string hashedPassword = auth.MD5Hash(user.password);
-                string query = "SELECT * FROM mst_users WHERE sesa_id = @sesa_id AND password = @password";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@sesa_id",  user.sesa_id);
-                cmd.Parameters.AddWithValue("@password", hashedPassword);
-
-                await conn.OpenAsync();
-                SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                // Jika user tidak ditemukan
-                if (!reader.HasRows)
-                {
-                    ViewData["Message"] = "User and Password not Registered!";
-                    return View("Index");
-                }
-
-                reader.Close();
-
-                // Ambil detail user dari database
-                var userDb = _db.GetUserDetail(user.sesa_id).FirstOrDefault();
-                if (userDb == null)
-                {
-                    ViewData["Message"] = "User details not found!";
-                    return View("Index");
-                }
-
-                // Buat session (claims) untuk user yang berhasil login
-                var claimsIdentity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userDb.sesa_id));
-                claimsIdentity.AddClaim(new Claim("P1F_MATA_name",  userDb.name));
-                claimsIdentity.AddClaim(new Claim("P1F_MATA_level", string.IsNullOrEmpty(userDb.level) ? "no_access" : userDb.level.ToLower()));
-                claimsIdentity.AddClaim(new Claim("P1F_MATA_role",  userDb.role  ?? ""));
-                claimsIdentity.AddClaim(new Claim("P1F_MATA_lines", userDb.lines ?? ""));
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Email,        userDb.email ?? "")); // ← tambah ini
-
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity));
-
-                return Json(new { success = true, redirectUrl = Url.Action("Open", "Home") });
+                ViewData["Message"] = "User and Password not Registered!";
+                return View("Index");
             }
+
+            var claimsIdentity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+            claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userDb.sesa_id));
+            claimsIdentity.AddClaim(new Claim("P1F_MATA_name",  userDb.name));
+            claimsIdentity.AddClaim(new Claim("P1F_MATA_level", string.IsNullOrEmpty(userDb.level) ? "no_access" : userDb.level.ToLower()));
+            claimsIdentity.AddClaim(new Claim("P1F_MATA_role",  userDb.role  ?? ""));
+            claimsIdentity.AddClaim(new Claim("P1F_MATA_lines", userDb.lines ?? ""));
+            claimsIdentity.AddClaim(new Claim(ClaimTypes.Email, userDb.email ?? ""));
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity));
+
+            return Json(new { success = true, redirectUrl = Url.Action("Open", "Home") });
         }
 
         // ===================================================================
         // LOGOUT
         // ===================================================================
 
-        /// <summary>
-        /// Logout user: menghapus semua claims, session, cookies, lalu sign out.
-        /// </summary>
+        /// <summary>Logout: hapus claims, session, cookies, lalu sign out.</summary>
         [Authorize]
         public async Task<IActionResult> Logout()
         {
             var claimsIdentity = (ClaimsIdentity)User.Identity;
 
-            // Daftar claim yang perlu dihapus sebelum sign out
-            string[] claimTypesToRemove = new[]
-            {
-                "P1F_MATA_name",
-                "P1F_MATA_level",
-                "P1F_MATA_plant",
-                "P1F_MATA_role"
-            };
-
-            foreach (var claimType in claimTypesToRemove)
+            foreach (var claimType in new[] { "P1F_MATA_name", "P1F_MATA_level", "P1F_MATA_plant", "P1F_MATA_role" })
             {
                 var claim = claimsIdentity?.FindFirst(claimType);
-                if (claim != null)
-                    claimsIdentity.RemoveClaim(claim);
+                if (claim != null) claimsIdentity.RemoveClaim(claim);
             }
 
-            // Refresh cookie dengan claims yang sudah dibersihkan
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity));
 
-            // Bersihkan session dan semua cookies
             HttpContext.Session.Clear();
-            foreach (var cookieKey in Request.Cookies.Keys)
-                Response.Cookies.Delete(cookieKey);
+            foreach (var key in Request.Cookies.Keys)
+                Response.Cookies.Delete(key);
 
-            // Sign out sepenuhnya
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
             return RedirectToAction("Index", "Home");
         }
     }

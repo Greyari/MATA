@@ -175,11 +175,7 @@ builder.Services.AddMvc();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-
 builder.Services.AddTransient<ITokenService, TokenService>();
-builder.Services.AddSingleton<FileManagementService>();
-builder.Services.AddSingleton<ExcelServiceProvider>();
-builder.Services.AddScoped<ImportExportFactory>();
 builder.Services.AddScoped<DatabaseAccessLayer>();
 
 // ===================================================================
