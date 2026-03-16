@@ -590,21 +590,21 @@ namespace P1F_MATA.Function
                 {
                     // Format tanggal temuan: "Jan 15, 2025" atau "-" jika null
                     date_find       = reader["finding_date"] != DBNull.Value ? ((DateTime)reader["finding_date"]).ToString("MMM dd, yyyy") : "-",
-                    facility_id     = reader["facility_id"].ToString(),
-                    facility        = reader["facility"].ToString(),
-                    order_id        = reader["order_id"].ToString(),       // ID unik ABN
-                    line            = reader["line_no"].ToString(),
-                    station_id      = reader["station_id"].ToString(),
-                    tpm_tag         = reader["tag_dept"].ToString(),        // Nama departemen TPM
-                    tag_id          = reader["tag_id"].ToString(),
-                    operator_sesa   = reader["operator"].ToString(),        // SESA ID operator yang melapor
-                    findings        = reader["remark"].ToString(),          // Deskripsi temuan
-                    picture         = reader["picture_finding"].ToString(), // Nama file foto BEFORE
-                    name_owner      = reader["name_owner"].ToString(),      // Nama Action Owner
-                    status_request  = reader["status_request"].ToString(),  // Kode status (0,1,2,3,4)
-                    status_dynamic  = reader["status_desc"].ToString(),     // Deskripsi status untuk UI
-                    status_action   = reader["status_action"].ToString(),
-                    owner_sesa      = reader["owner_sesa"].ToString(),
+                    facility_id     = reader["facility_id"].ToString(),      // ID fasilitas
+                    facility        = reader["facility"].ToString(),         // Nama fasilitas
+                    order_id        = reader["order_id"].ToString(),         // ID unik ABN
+                    line            = reader["line_no"].ToString(),          // Nomor line produksi
+                    station_id      = reader["station_id"].ToString(),       // ID stasiun (bisa null jika tidak diisi)
+                    tpm_tag         = reader["tag_dept"].ToString(),         // Nama departemen TPM
+                    tag_id          = reader["tag_id"].ToString(),           // ID TPM tag (untuk filter Action Owner)
+                    operator_sesa   = reader["operator"].ToString(),         // SESA ID operator yang melapor
+                    findings        = reader["remark"].ToString(),           // Deskripsi temuan
+                    picture         = reader["picture_finding"].ToString(),  // Nama file foto BEFORE
+                    name_owner      = reader["name_owner"].ToString(),       // Nama Action Owner
+                    status_request  = reader["status_request"].ToString(),   // Kode status (0,1,2,3,4)
+                    status_dynamic  = reader["status_desc"].ToString(),      // Deskripsi status untuk UI
+                    status_action   = reader["status_action"].ToString(),    // Kode status aksi (0,1,2,3)
+                    owner_sesa      = reader["owner_sesa"].ToString(),       // SESA ID Action Owner
                     requestor_sesa  = reader["sesa_id"].ToString(),          // SESA ID pelapor ABN
                     assigned_sesa   = reader["assigned_sesa"].ToString(),    // SESA ID yang di-assign untuk menangani ABN
                     validator_sesa  = reader["validator_sesa"].ToString(),   // SESA ID yang memvalidasi ABN (bisa null jika belum divalidasi)
