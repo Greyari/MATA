@@ -605,10 +605,10 @@ namespace P1F_MATA.Function
                     status_dynamic  = reader["status_desc"].ToString(),     // Deskripsi status untuk UI
                     status_action   = reader["status_action"].ToString(),
                     owner_sesa      = reader["owner_sesa"].ToString(),
-                    requestor_sesa  = reader["sesa_id"].ToString(),         // SESA ID pelapor ABN
-                    assigned_sesa   = reader["assigned_sesa"].ToString(),
-                    validator_sesa  = reader["validator_sesa"].ToString(),
-                    name_validator  = reader["name_validator"].ToString(),
+                    requestor_sesa  = reader["sesa_id"].ToString(),          // SESA ID pelapor ABN
+                    assigned_sesa   = reader["assigned_sesa"].ToString(),    // SESA ID yang di-assign untuk menangani ABN
+                    validator_sesa  = reader["validator_sesa"].ToString(),   // SESA ID yang memvalidasi ABN (bisa null jika belum divalidasi)
+                    name_validator  = reader["name_validator"].ToString(),   // Nama lengkap validator (bisa null jika belum divalidasi)
                     image           = reader["image"].ToString(),            // Nama file foto AFTER
                     attachment_file = reader["attachment_file"].ToString(),  // Nama file PDF lampiran
                     corrective      = reader["corrective"].ToString()        // Tindakan korektif
