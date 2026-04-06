@@ -6,133 +6,173 @@
     string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 }
 
-    @foreach (ABNModel item in Model)
-    {
-        <tr>
-            <td class="text-center align-middle">@item.order_id</td>
-            <td class="text-center align-middle">@item.date_find</td>
-            <td class="text-center align-middle">@item.facility</td>
-            <td class="text-center align-middle">@item.line</td>
-            <td class="text-center align-middle">@item.station_id</td>
-            @{
-                string tagClass = @item.tag_id switch
-                {
-                    "White" => "badge-light",
-                    "Green" => "badge-success",
-                    "Red" => "badge-danger",
-                    "Yellow" => "badge-warning",
-                    _ => "badge-secondary"
-                };
+@foreach (ABNModel item in Model)
+{
+    <tr>
+        <td class="text-center align-middle">@item.order_id</td>
+        <td class="text-center align-middle">@item.date_find</td>
+        <td class="text-center align-middle">@item.facility</td>
+        <td class="text-center align-middle">@item.line</td>
+        <td class="text-center align-middle">@item.station_id</td>
+
+        @* TPM Tag Badge *@
+        @{
+            string tagClass = item.tag_id switch
+            {
+                "White"  => "badge-light",
+                "Green"  => "badge-success",
+                "Red"    => "badge-danger",
+                "Yellow" => "badge-warning",
+                _        => "badge-secondary"
+            };
+        }
+        <td class="text-center align-middle">
+            <span class="badge @tagClass" style="font-size: 100%;">
+                @item.tpm_tag
+            </span>
+        </td>
+
+        <td class="text-center align-middle">
+            @(string.IsNullOrWhiteSpace(item.operator_sesa) ? "-" : item.operator_sesa)
+        </td>
+
+        <td class="text-center align-middle">@item.findings</td>
+
+        @* ============================================================
+           GAMBAR — 2 kolom terpisah (Finding Before & Action After)
+           Pakai data-* attributes agar tidak ada karakter berbahaya
+           di dalam onclick string
+        ============================================================ *@
+        @{
+            string defaultImagePath = Url.Content("~/assets/notavailable.png");
+            string imageUploadPath  = Url.Content("~/upload/img/abn/");
+            string pictureName      = string.IsNullOrEmpty(item.picture) ? "" : item.picture;
+            string imageName        = string.IsNullOrEmpty(item.image)   ? "" : item.image;
+            string findingSrc       = string.IsNullOrEmpty(pictureName)  ? defaultImagePath : imageUploadPath + pictureName;
+            string actionSrc        = string.IsNullOrEmpty(imageName)    ? defaultImagePath : imageUploadPath + imageName;
+        }
+
+        @* Kolom Finding (Before) *@
+        <td class="text-center align-middle">
+            <img src="@findingSrc"
+                 height="60" width="60"
+                 style="cursor:pointer; object-fit:cover; border-radius:4px;"
+                 data-picture="@pictureName"
+                 data-image="@imageName"
+                 data-remark="@item.findings"
+                 data-corrective="@item.corrective"
+                 onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
+                 onerror="this.onerror=null; this.src='@defaultImagePath';" />
+        </td>
+
+        @* Kolom Action (After) *@
+        <td class="text-center align-middle">
+            <img src="@actionSrc"
+                 height="60" width="60"
+                 style="cursor:pointer; object-fit:cover; border-radius:4px;"
+                 data-picture="@pictureName"
+                 data-image="@imageName"
+                 data-remark="@item.findings"
+                 data-corrective="@item.corrective"
+                 onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
+                 onerror="this.onerror=null; this.src='@defaultImagePath';" />
+        </td>
+
+        @* Attachment PDF *@
+        <td class="align-middle text-center">
+            @if (!string.IsNullOrEmpty(item.attachment_file))
+            {
+                <button class="btn btn-primary mb-1 mt-1" style="width: 3rem;"
+                        onclick="viewPdf('@item.attachment_file')">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
             }
-            <td class="text-center align-middle">
-                <span class="badge @tagClass" style="font-size: 100%;">
-                        @item.tpm_tag
-                </span>
-            </td>
-            @* <td class="text-center align-middle">@item.operator_sesa</td> *@
-            <td class="text-center align-middle">
-                @(string.IsNullOrWhiteSpace(item.operator_sesa) ? "-" : item.operator_sesa)
-            </td>
-            <td class="text-center align-middle">@item.findings</td>
-            <td class="text-center align-middle">
-                @{
-                    string defaultImagePath = Url.Content("~/assets/notavailable.png");
-                    string imageUploadPath = Url.Content("~/upload/img/abn/");
+        </td>
 
-                    string findingSrc = string.IsNullOrEmpty(item.picture)
-                    ? defaultImagePath
-                    : imageUploadPath + item.picture;
+        @* Status Badge *@
+        @{
+            string statusClass = item.status_dynamic switch
+            {
+                "Waiting Action Owner" => "badge-warning",
+                "Waiting Validation"   => "badge-info",
+                "Done"                 => "badge-secondary",
+                _                      => "badge-secondary"
+            };
+        }
+        <td class="text-center align-middle">
+            <span class="badge @statusClass" style="font-size: 100%;">
+                @item.status_dynamic
+            </span>
+        </td>
 
-                    string actionSrc = string.IsNullOrEmpty(item.image)
-                    ? defaultImagePath
-                    : imageUploadPath + item.image;
+        <td class="text-center align-middle">@item.name_owner</td>
+        <td class="text-center align-middle">@item.name_validator</td>
 
-                    string cleanedFindings = item.findings.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
-                    string cleanedCorrective = item.corrective.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
-                }
-
-                <div class="card-overlap-container"
-                     style="cursor: pointer"
-                     onclick="zoomAllImage('@item.image', '@item.picture', '@cleanedFindings', '@cleanedCorrective')">
-                    <img class="img-top"
-                         src="@actionSrc"
-                         height="100" width="100"
-                         onerror="this.onerror=null; this.src='@defaultImagePath';" />
-
-                    <img class="img-bottom"
-                         src="@findingSrc"
-                         height="100" width="100"
-                         onerror="this.onerror=null; this.src='@defaultImagePath';" />
-                </div>
-            </td>
-            <td class="align-middle text-center">
-                @if (!string.IsNullOrEmpty(item.attachment_file))
-                {
-                <button class="btn btn-primary mb-1 mt-1" style="width: 3rem;" onclick="viewPdf('@item.attachment_file')"><i class="fas fa-file-pdf"></i></button>
-                }
-            </td>
-            @{
-                string statusClass = @item.status_dynamic switch
-                {
-                    "Waiting Action Owner" => "badge-warning",
-                    "Waiting Validation" => "badge-info",
-                    "Done" => "badge-secondary",
-                    _ => "badge-secondary"
-                };
+        @* Tombol Aksi *@
+        <td class="text-center align-middle">
+            @if (item.requestor_sesa == sesa_id)
+            {
+                <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
+                    <span class="fa fa-eye"></span>
+                </button>
             }
-            <td class="text-center align-middle">
-                <span class="badge @statusClass" style="font-size: 100%;">
-                    @item.status_dynamic
-                </span>
-            </td>
-            <td class="text-center align-middle">@item.name_owner</td>
-            <td class="text-center align-middle">@item.name_validator</td>
-            <td class="text-center align-middle">
-                @if (item.requestor_sesa == sesa_id)
+            else if (item.owner_sesa == sesa_id)
+            {
+                @if (item.status_request == "0")
                 {
-                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
-                } 
-                else if (item.owner_sesa == sesa_id) 
-                {
-                    @if (item.status_request == "0")
-                    {
-                        <button class="btn btn-warning" onclick="actionOwner('@item.order_id')"><span class="fa fa-edit"></span></button>
-                    }
-                    else if (item.status_request == "4")
-                    {
-                        <button class="btn btn-warning" onclick="actionOwner2('@item.order_id')"><span class="fa fa-edit"></span></button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
-                    }
+                    <button class="btn btn-warning" onclick="actionOwner('@item.order_id')">
+                        <span class="fa fa-edit"></span>
+                    </button>
                 }
-                else if (item.validator_sesa == sesa_id)
+                else if (item.status_request == "4")
                 {
-                    @if (item.status_request == "1")
-                    {
-                        <button class="btn btn-warning" onclick="actionValidator('@item.order_id')"><span class="fa fa-edit"></span></button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
-                    }
-                }
-                else if (item.assigned_sesa == sesa_id)
-                {
-                    @if (item.status_request == "3")
-                    {
-                        <button class="btn btn-warning" onclick="actionAssigned('@item.order_id')"><span class="fa fa-edit"></span></button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
-                    }
+                    <button class="btn btn-warning" onclick="actionOwner2('@item.order_id')">
+                        <span class="fa fa-edit"></span>
+                    </button>
                 }
                 else
                 {
-                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')"><span class="fa fa-eye"></span></button>
+                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
+                        <span class="fa fa-eye"></span>
+                    </button>
                 }
-            </td>
-        </tr>
-    }
+            }
+            else if (item.validator_sesa == sesa_id)
+            {
+                @if (item.status_request == "1")
+                {
+                    <button class="btn btn-warning" onclick="actionValidator('@item.order_id')">
+                        <span class="fa fa-edit"></span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
+                        <span class="fa fa-eye"></span>
+                    </button>
+                }
+            }
+            else if (item.assigned_sesa == sesa_id)
+            {
+                @if (item.status_request == "3")
+                {
+                    <button class="btn btn-warning" onclick="actionAssigned('@item.order_id')">
+                        <span class="fa fa-edit"></span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
+                        <span class="fa fa-eye"></span>
+                    </button>
+                }
+            }
+            else
+            {
+                <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
+                    <span class="fa fa-eye"></span>
+                </button>
+            }
+        </td>
+    </tr>
+}
