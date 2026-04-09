@@ -128,12 +128,39 @@
 
                 $sidebar.on('mouseenter', function () {
                     if ($body.hasClass('sidebar-collapse')) {
+                        // Logo
                         $img.attr('src', imgOpen).css({ 'max-height': '35px', 'max-width': 'initial' });
+                        // User card
+                        $('.sidebar-user-info').css({ 'opacity': '1', 'width': 'auto', 'pointer-events': 'auto' });
+                        $('#btn-logout').css({ 'opacity': '1', 'width': 'auto', 'pointer-events': 'auto' });
+                        $('.sidebar-user-card').css('width', 'calc(250px - 16px)');
                     }
                 });
 
                 $sidebar.on('mouseleave', function () {
-                    if ($body.hasClass('sidebar-collapse')) updateSidebarLogo();
+                    if ($body.hasClass('sidebar-collapse')) {
+                        updateSidebarLogo();
+                        // User card
+                        $('.sidebar-user-info').css({ 'opacity': '0', 'width': '0', 'pointer-events': 'none' });
+                        $('#btn-logout').css({ 'opacity': '0', 'width': '0', 'pointer-events': 'none' });
+                        $('.sidebar-user-card').css('width', 'calc(4.6rem - 16px)');
+                    }
+                });
+                
+                // Handle window resize
+                $(window).on('resize', function () {
+                    if ($body.hasClass('sidebar-collapse') && !$body.hasClass('sidebar-open')) {
+                        // Collapsed state
+                        $('.sidebar-user-info').css({ 'opacity': '0', 'width': '0', 'pointer-events': 'none' });
+                        $('#btn-logout').css({ 'opacity': '0', 'width': '0', 'pointer-events': 'none' });
+                        $('.sidebar-user-card').css('width', 'calc(4.6rem - 16px)');
+                    } else {
+                        // Expanded state
+                        $('.sidebar-user-info').css({ 'opacity': '1', 'width': 'auto', 'pointer-events': 'auto' });
+                        $('#btn-logout').css({ 'opacity': '1', 'width': 'auto', 'pointer-events': 'auto' });
+                        $('.sidebar-user-card').css('width', 'calc(250px - 16px)');
+                    }
+                    updateSidebarLogo();
                 });
             });
 
@@ -218,6 +245,17 @@
         transition: width 0.3s ease, background 0.2s;
         overflow: hidden;
     }
+    
+    .sidebar-collapse:not(.sidebar-open) .sidebar-user-card {
+        width: calc(4.6rem - 16px);
+        overflow: hidden !important;
+    }
+
+    /* Sembunyikan scrollbar horizontal sidebar */
+    .main-sidebar, .sidebar {
+        overflow-x: hidden !important;
+    }
+
     .sidebar-user-card:hover { background-color: rgba(255,255,255,0.13); }
 
     .sidebar-collapse:not(.sidebar-open) .sidebar-user-card  { width: calc(4.6rem - 16px); }
