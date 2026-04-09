@@ -52,30 +52,38 @@
             string actionSrc        = string.IsNullOrEmpty(imageName)    ? defaultImagePath : imageUploadPath + imageName;
         }
 
-        @* Kolom Finding (Before) *@
+        @* Kolom picture *@
         <td class="text-center align-middle">
-            <img src="@findingSrc"
-                 height="60" width="60"
-                 style="cursor:pointer; object-fit:cover; border-radius:4px;"
-                 data-picture="@pictureName"
-                 data-image="@imageName"
-                 data-remark="@item.findings"
-                 data-corrective="@item.corrective"
-                 onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
-                 onerror="this.onerror=null; this.src='@defaultImagePath';" />
-        </td>
+            <div style="position:relative; width:65px; height:65px; margin:0 auto;"
+                onmouseover="
+                    this.children[0].style.transform='translate(-5px,-5px) scale(1.05)';
+                    this.children[0].style.boxShadow='2px 2px 8px rgba(0,0,0,0.4)';
+                    this.children[1].style.transform='translate(5px,5px) scale(1.05)';
+                    this.children[1].style.boxShadow='2px 2px 8px rgba(0,0,0,0.4)';"
+                onmouseout="
+                    this.children[0].style.transform='';
+                    this.children[0].style.boxShadow='';
+                    this.children[1].style.transform='';
+                    this.children[1].style.boxShadow='';">
 
-        @* Kolom Action (After) *@
-        <td class="text-center align-middle">
-            <img src="@actionSrc"
-                 height="60" width="60"
-                 style="cursor:pointer; object-fit:cover; border-radius:4px;"
-                 data-picture="@pictureName"
-                 data-image="@imageName"
-                 data-remark="@item.findings"
-                 data-corrective="@item.corrective"
-                 onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
-                 onerror="this.onerror=null; this.src='@defaultImagePath';" />
+                <img src="@findingSrc" height="60" width="60"
+                    style="cursor:pointer; object-fit:cover; border-radius:4px;
+                            position:absolute; top:0; left:0;
+                            transition: transform 0.3s ease, box-shadow 0.3s ease;"
+                    data-picture="@pictureName" data-image="@imageName"
+                    data-remark="@item.findings" data-corrective="@item.corrective"
+                    onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
+                    onerror="this.onerror=null;this.src='@defaultImagePath';" />
+
+                <img src="@actionSrc" height="60" width="60"
+                    style="cursor:pointer; object-fit:cover; border-radius:4px;
+                            position:absolute; top:8px; left:8px; border:2px solid white;
+                            transition: transform 0.3s ease, box-shadow 0.3s ease;"
+                    data-picture="@pictureName" data-image="@imageName"
+                    data-remark="@item.findings" data-corrective="@item.corrective"
+                    onclick="zoomAllImage(this.dataset.image, this.dataset.picture, this.dataset.remark, this.dataset.corrective)"
+                    onerror="this.onerror=null;this.src='@defaultImagePath';" />
+            </div>
         </td>
 
         @* Attachment PDF *@
