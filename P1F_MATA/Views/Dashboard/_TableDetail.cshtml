@@ -7,83 +7,112 @@
     string user_level = User.FindFirst("p1f_tpm360_hub_level")?.Value;
     var userLevels = user_level?.Split(';') ?? new string[0];
 }
+
 @foreach (var item in Model)
 {
     <tr>
-        <td>@item.finding_date</td>
-        <td>@item.facility</td>
-        <td>@item.line_no</td>
-        <td>@item.station_id</td>
+        <td class="text-center align-middle">@item.finding_date</td>
+        <td class="text-center align-middle">@item.facility</td>
+        <td class="text-center align-middle">@item.line_no</td>
+        <td class="text-center align-middle">@item.station_id</td>
+
+        @* TPM Tag Badge *@
         @{
-            string tagClass = @item.tag_id switch
+            string tagClass = item.tag_id switch
             {
-                "White" => "badge-light",
-                "Green" => "badge-success",
-                "Red" => "badge-danger",
+                "White"  => "badge-light",
+                "Green"  => "badge-success",
+                "Red"    => "badge-danger",
                 "Yellow" => "badge-warning",
-                _ => "badge-secondary"
+                _`        => "badge-secondary"
             };
         }
         <td class="text-center align-middle">
-            <span class="badge @tagClass" style="font-size: 100%;">
+            <span class="badge @tagClass" style="font-size:100%;">
                 @item.tag_dept
             </span>
         </td>
-        <td> @(string.IsNullOrWhiteSpace(item.operators) ? "-" : item.operators)</td>
-        <td class="text-center align-middle">@item.findings</td>
-        <td class="text-center align-middle">
-            @{
-                string defaultImagePath = Url.Content("~/assets/notavailable.png");
-                string imageUploadPath = Url.Content("~/upload/img/abn/");
-        
-            string findingSrc = string.IsNullOrEmpty(item.picture_finding)
-                ? defaultImagePath
-            : imageUploadPath + item.picture_finding;
-        
-            string actionSrc = string.IsNullOrEmpty(item.picture_after)
-                ? defaultImagePath
-            : imageUploadPath + item.picture_after;
-        
-                string cleanedFindings = item.findings.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
-                string cleanedCorrective = item.corrective.Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
 
-            }
-        
-            <div class="card-overlap-container"
-                 style="cursor: pointer"
-                 onclick="zoomAllImage('@item.picture_after', '@item.picture_finding', '@cleanedFindings', '@cleanedCorrective')">
-                <img class="img-top"
-                     src="@actionSrc"
-                     height="100" width="100"
-                     onerror="this.onerror=null; this.src='@defaultImagePath';" />
-        
-                <img class="img-bottom"
-                     src="@findingSrc"
-                     height="100" width="100"
-                     onerror="this.onerror=null; this.src='@defaultImagePath';" />
+        <td class="text-center align-middle">
+            @(string.IsNullOrWhiteSpace(item.operators) ? "-" : item.operators)
+        </td>
+
+        <td class="text-center align-middle">@item.findings</td>
+
+        @* Gambar Before & After *@
+        @{
+            string defaultImagePath = Url.Content("~/assets/notavailable.png");
+            string imageUploadPath  = Url.Content("~/upload/img/abn/");
+
+            string findingSrc = string.IsNullOrEmpty((string)item.picture_finding)
+                ? defaultImagePath : imageUploadPath + item.picture_finding;
+
+            string actionSrc = string.IsNullOrEmpty((string)item.picture_after)
+                ? defaultImagePath : imageUploadPath + item.picture_after;
+
+            string cleanedFindings   = ((string)item.findings   ?? "").Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+            string cleanedCorrective = ((string)item.corrective ?? "").Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+        }
+
+        <td class="text-center align-middle">
+            <div style="position:relative; width:65px; height:65px; margin:0 auto;"
+                 onmouseover="
+                     this.children[0].style.transform='translate(-5px,-5px) scale(1.05)';
+                     this.children[0].style.boxShadow='2px 2px 8px rgba(0,0,0,0.4)';
+                     this.children[1].style.transform='translate(5px,5px) scale(1.05)';
+                     this.children[1].style.boxShadow='2px 2px 8px rgba(0,0,0,0.4)';"
+                 onmouseout="
+                     this.children[0].style.transform='';
+                     this.children[0].style.boxShadow='';
+                     this.children[1].style.transform='';
+                     this.children[1].style.boxShadow='';">
+
+                <img src="@findingSrc" height="60" width="60"
+                     style="cursor:pointer; object-fit:cover; border-radius:4px;
+                            position:absolute; top:0; left:0;
+                            transition: transform 0.3s ease, box-shadow 0.3s ease;"
+                     onclick="zoomAllImage('@item.picture_after', '@item.picture_finding', '@cleanedFindings', '@cleanedCorrective')"
+                     onerror="this.onerror=null;this.src='@defaultImagePath';" />
+
+                <img src="@actionSrc" height="60" width="60"
+                     style="cursor:pointer; object-fit:cover; border-radius:4px;
+                            position:absolute; top:8px; left:8px; border:2px solid white;
+                            transition: transform 0.3s ease, box-shadow 0.3s ease;"
+                     onclick="zoomAllImage('@item.picture_after', '@item.picture_finding', '@cleanedFindings', '@cleanedCorrective')"
+                     onerror="this.onerror=null;this.src='@defaultImagePath';" />
             </div>
         </td>
+
+        @* Attachment PDF *@
         <td class="align-middle text-center">
-            @if (!string.IsNullOrEmpty(item.attachment_file))
+            @if (!string.IsNullOrEmpty((string)item.attachment_file))
             {
-                <button class="btn btn-primary mb-1 mt-1" style="width: 3rem;" onclick="viewPdf('@item.attachment_file')"><i class="fas fa-file-pdf"></i></button>
+                <button class="btn btn-primary mb-1 mt-1" style="width:3rem;"
+                        onclick="viewPdf('@item.attachment_file')">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
             }
         </td>
+
+        @* Status Badge *@
         @{
-            string statusClass = @item.status_dynamic switch
+            string statusClass = item.status_dynamic switch
             {
                 "Waiting Action Owner" => "badge-warning",
-                "Waiting Validation" => "badge-info",
-                "Done" => "badge-secondary",
-                _ => "badge-secondary"
+                "Waiting Validation"   => "badge-info",
+                "Done"                 => "badge-success",
+                "Waiting Assigned"     => "badge-primary",
+                "Clarify"              => "badge-danger",
+                _                      => "badge-secondary"
             };
         }
         <td class="text-center align-middle">
-            <span class="badge @statusClass" style="font-size: 100%;">
+            <span class="badge @statusClass" style="font-size:100%;">
                 @item.status_dynamic
             </span>
         </td>
-        <td>@item.name_owner</td>
-        <td>@item.name_validator</td>
+
+        <td class="text-center align-middle">@item.name_owner</td>
+        <td class="text-center align-middle">@item.name_validator</td>
     </tr>
 }

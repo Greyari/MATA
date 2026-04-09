@@ -38,11 +38,7 @@
 
         <td class="text-center align-middle">@item.findings</td>
 
-        @* ============================================================
-           GAMBAR — 2 kolom terpisah (Finding Before & Action After)
-           Pakai data-* attributes agar tidak ada karakter berbahaya
-           di dalam onclick string
-        ============================================================ *@
+        @* Gambar Before & After *@
         @{
             string defaultImagePath = Url.Content("~/assets/notavailable.png");
             string imageUploadPath  = Url.Content("~/upload/img/abn/");
