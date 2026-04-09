@@ -24,7 +24,7 @@
                 "Green"  => "badge-success",
                 "Red"    => "badge-danger",
                 "Yellow" => "badge-warning",
-                _`        => "badge-secondary"
+                _        => "badge-secondary"
             };
         }
         <td class="text-center align-middle">
@@ -52,6 +52,7 @@
 
             string cleanedFindings   = ((string)item.findings   ?? "").Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
             string cleanedCorrective = ((string)item.corrective ?? "").Replace("'", "`").Replace(Environment.NewLine, " ").Replace("\"", "`");
+            
         }
 
         <td class="text-center align-middle">

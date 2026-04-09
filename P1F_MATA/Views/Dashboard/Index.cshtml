@@ -269,13 +269,17 @@
                     }
                 },
                 onClick: (event, elements) => {
-                    if (elements.length > 0) onClick(instance.data.labels[elements[0].index]);
+                    if (elements.length > 0) {
+                        // Ambil chart langsung dari canvas, bukan dari parameter instance
+                        const chart = Chart.getChart(canvasId);
+                        onClick(chart.data.labels[elements[0].index]);
+                    }
                 }
             },
             plugins: [ChartDataLabels]
         });
     }
-
+    
     // ===== LOAD ALL =====
     function loadAllData() {
         getAbnMonitoring();
