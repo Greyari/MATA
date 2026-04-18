@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @{
     string sesa_id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    string userLevel = User.FindFirst("P1F_MATA_level")?.Value;
 }
 
 @foreach (ABNModel item in Model)
@@ -175,6 +176,13 @@
             {
                 <button class="btn btn-secondary" onclick="actionDetailABN('@item.order_id')">
                     <span class="fa fa-eye"></span>
+                </button>
+            }
+            @if (userLevel == "superadmin")
+            {
+                <button class="btn btn-danger btn-sm mt-1" onclick="deleteData('@item.order_id')"
+                        title="Delete this record">
+                    <span class="fa fa-trash"></span>
                 </button>
             }
         </td>

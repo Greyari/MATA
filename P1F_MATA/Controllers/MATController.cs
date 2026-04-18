@@ -518,5 +518,26 @@ namespace P1F_MATA.Controllers
                 return Json(new { success = false, message = "An error occurred on the server: " + ex.Message });
             }
         }
+
+        /// [DeleteAbnormality] Menghapus record ABN berdasarkan order_id.
+        /// Hanya bisa dilakukan oleh user dengan level yang sesuai (misal: mat_admin atau
+        /// superadmin) untuk menghindari penghapusan data oleh operator biasa.
+        /// Logika validasi level ada di DAL, dan SP DeleteAbnormality akan memastikan hanya user dengan level yang tepat yang bisa menghapus.
+        /// Dipanggil via AJAX dari halaman detail ABN (misal: tombol "Delete" yang hanya muncul untuk user dengan akses).
+        /// Return JSON: { success: true/false, message: "..." }
+        /// </summary> <param name="order_id">ID ABN yang ingin dihapus</param>
+        /// Catatan: Penghapusan ini bersifat permanen, jadi pastikan ada konfirmasi di UI sebelum memanggil endpoint ini.
+        /// SP DeleteAbnormality di database akan memeriksa level user dan hanya mengizinkan penghapusan jika level user sesuai (misal: mat_admin atau superadmin).
+        /// Jika user tidak memiliki akses, SP akan mengembalikan pesan error yang kemudian diteruskan ke frontend untuk ditampilkan kepada user.
+        /// Pastikan juga bahwa di UI, tombol "Delete" hanya ditampilkan untuk user yang memiliki level akses yang sesuai, untuk menghindari kebingungan bagi user biasa yang tidak bisa menghapus data.
+        /// Dengan adanya endpoint ini, admin dapat membersihkan data ABN yang sudah tidak relevan atau yang dimasukkan secara salah, tanpa harus mengakses database secara langsung.
+
+        [HttpPost]
+        public JsonResult DeleteAbnormality(string order_id)
+        {
+            string userLevel = User.FindFirst("P1F_MATA_level")?.Value;
+            var (success, message) = _db.DeleteAbnormality(order_id, userLevel);
+            return Json(new { success, message });
+        }
     }
 }

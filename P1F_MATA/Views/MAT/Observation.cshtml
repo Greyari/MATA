@@ -1377,7 +1377,40 @@
             complete: function() { $('#spinner_loading').hide(); }
         });
     }
-
+    // ===============================================================
+    //  deleteData
+    // ===============================================================
+    function deleteData(order_id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Data for Order ID ' + order_id + ' will be permanently deleted!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '@Url.Action("DeleteAbnormality", "MAT")',
+                    type: 'POST',
+                    data: { order_id: order_id },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', response.message, 'success')
+                                .then(function () { getTable(); });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error!', 'An error occurred. Please try again.', 'error');
+                    }
+                });
+            }
+        });
+    }
     // ===== IMAGE PREVIEW HANDLERS =====
     function setupImagePreview(inputId, previewId, displayNameId, resetBtnId) {
         const preview  = document.getElementById(previewId);
