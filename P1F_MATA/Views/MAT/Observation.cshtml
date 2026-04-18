@@ -28,17 +28,42 @@
             text-align: center;
         }
 
-        @* .modal-dialog {
-            max-width: 110% !important;
-            height: 100%;
-            padding: 0;
-            margin: 0;
+        /* Ukuran Modal yang lebih proporsional */
+        .modal-lg {
+            max-width: 80% !important; /* Tidak lagi 110% */
         }
 
-        .modal {
-            padding-right: 4px !important;
-            padding: .5%;
-        } *@
+        /* Membuat isi modal lebih rapat (compact) */
+        .modal-body {
+            padding: 0.8rem;
+        }
+
+        .modal-body .card {
+            margin-bottom: 10px;
+        }
+
+        /* Mengecilkan font label agar kolom terlihat lebih kecil */
+        .modal-body label {
+            font-size: 9pt !important;
+            margin-bottom: 2px;
+        }
+
+        /* Mengecilkan tinggi input (form control) */
+        .form-control-sm, .form-select-sm {
+            height: calc(1.5em + 0.5rem + 2px);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* CSS tambahan untuk merapikan row agar tidak terlalu renggang */
+        .form-group {
+            margin-bottom: 0.7rem;
+        }
+
+        /* Memastikan modal berada di tengah */
+        .modal-dialog {
+            margin: 1.75rem auto;
+        }
 
         .pdfFile-form {
             padding: 0.25rem 0.5rem;
