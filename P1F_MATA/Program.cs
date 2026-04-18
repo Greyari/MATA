@@ -152,6 +152,17 @@ builder.Services.AddAuthentication(options =>
 // ===================================================================
 // OTORISASI: Policy berbasis level user
 // ===================================================================
+// testing scuryti di owas zap
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SecureCORS", policy =>
+    {
+        policy.WithOrigins("http://localhost:5242")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddAuthorization(options =>
 {
     // Policy "UserLevel": izinkan akses jika user memiliki setidaknya satu level yang diperbolehkan
@@ -192,6 +203,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors("SecureCORS");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
@@ -199,9 +211,37 @@ app.UseSession();
 // Middleware: redirect 403 Forbidden ke halaman utama
 app.Use(async (context, next) =>
 {
+    // ✅ CSP (lebih aman)
+    context.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self' data:;";
+
+    // ✅ Anti Clickjacking
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+
+    // ✅ Anti MIME Sniffing
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+    // ✅ Cache Control
+    context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+
+    // ✅ Tambahan (bonus biar makin aman)
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+
+    context.Response.Headers["Pragma"] = "no-cache";
+    context.Response.Headers["Expires"] = "0";
+    
     await next();
+
+    // Redirect jika 403
     if (context.Response.StatusCode == StatusCodes.Status403Forbidden)
+    {
         context.Response.Redirect("/");
+    }
 });
 
 // Route default: Home/Index
