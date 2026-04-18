@@ -296,6 +296,72 @@ namespace P1F_MATA.Function
             return cmd.ExecuteNonQuery();
         }
 
+        /// ===================================================================
+        /// DASHBOARD CASCADE DROPDOWN
+        /// ===================================================================
+        public List<CodeNameModel> GetLinesByFacilities(string facilityIds)
+        {
+            var list = new List<CodeNameModel>();
+            if (string.IsNullOrEmpty(facilityIds)) return list;
+
+            using (SqlConnection conn = new SqlConnection(_connectionString)) // ✅
+            {
+                conn.Open();
+                string query = @"SELECT DISTINCT line_no 
+                                FROM V_MAT 
+                                WHERE facility_id IN (SELECT value FROM STRING_SPLIT(@facilityIds, ',')) 
+                                ORDER BY line_no ASC";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@facilityIds", facilityIds);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                        while (reader.Read())
+                            list.Add(new CodeNameModel { Code = reader["line_no"].ToString() });
+                }
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Mengambil daftar stasiun yang berelasi dengan line tertentu.
+        /// Digunakan untuk cascade dropdown Line → Station di form Observation dan Dashboard.
+        /// Parameter lineNos bisa berisi satu atau beberapa line_no yang dipilih user,
+        /// dipisahkan dengan koma (misal: "Line1,Line2,Line3").
+        /// Query menggunakan STRING_SPLIT untuk memecah string lineNos menjadi tabel sementara,
+        /// sehingga bisa digunakan dalam IN clause untuk filter.
+        /// Hasilnya adalah daftar stasiun unik yang terkait dengan line-line tersebut, diurutkan secara ascending.
+        /// Jika lineNos kosong/null → return list kosong (tidak ada stasiun yang ditampilkan).
+        /// Keamanan: parameter lineNos diperlakukan sebagai string biasa, tidak ada risiko SQL injection karena menggunakan parameterized query.
+        /// Return: List<CodeNameModel> dengan field Code berisi station_no, dan Name tetap null (karena hanya butuh station_no untuk dropdown).
+        /// Contoh input: lineNos = "Line1,Line2"
+        /// Contoh output: [{ Code = "StationA", Name = null }, { Code = "StationB", Name = null }, ...] (stasiun yang terkait dengan Line1 dan Line2)
+        /// Catatan: pastikan di database ada data yang sesuai dengan line_no yang diberikan, agar hasil tidak kosong.
+        /// Jika line_no yang diberikan tidak ada di database → return list kosong.
+        /// Jika ada duplikasi stasiun karena satu stasiun terkait dengan beberapa line → hasil tetap unik karena menggunakan DISTINCT.
+        /// </summary>
+        public List<CodeNameModel> GetStationsByLines(string lineNos)
+        {
+            var list = new List<CodeNameModel>();
+            if (string.IsNullOrEmpty(lineNos)) return list;
+
+            using (SqlConnection conn = new SqlConnection(_connectionString)) 
+            {
+                conn.Open();
+                string query = @"SELECT DISTINCT station_no 
+                                FROM mst_linestation 
+                                WHERE line_no IN (SELECT value FROM STRING_SPLIT(@lineNos, ',')) 
+                                ORDER BY station_no ASC";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@lineNos", lineNos);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                        while (reader.Read())
+                            list.Add(new CodeNameModel { Code = reader["station_no"].ToString() });
+                }
+            }
+            return list;
+        }
+
         /// <summary>
         /// Mencari user berdasarkan keyword di kolom sesa_id, name, atau email.
         /// Jika keyword kosong → mengembalikan semua user (tanpa filter).

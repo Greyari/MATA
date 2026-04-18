@@ -85,6 +85,12 @@ namespace P1F_MATA.Controllers
         [HttpGet]
         public JsonResult GetDateSO() => Json(_db.GetDateSO());
 
+        [HttpGet]
+        public JsonResult GetLinesByFacilities(string facilityIds) => Json(_db.GetLinesByFacilities(facilityIds));
+
+        [HttpGet]
+        public JsonResult GetStationsByLines(string lineNos) => Json(_db.GetStationsByLines(lineNos));
+
         // ===================================================================
         // PRIVATE HELPER: CHART + DETAIL EXECUTOR
         // ===================================================================

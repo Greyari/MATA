@@ -217,11 +217,81 @@
         setTimeout(loadAllData, 100);
 
         $('#apply_filter').off('click').on('click', loadAllData);
+
+        // ===== CASCADING: Facility → Line =====
+        $('#select_filter_2').on('change', function () {
+            var facilities = $(this).val();
+            console.log("Facility dipilih:", facilities); // ← CEK INI
+
+            var $lineSelect    = $('#select_filter_3');
+            var $stationSelect = $('#select_filter_4');
+
+            if (!facilities || facilities.length === 0) {
+                $lineSelect.empty().selectpicker('refresh');
+                $stationSelect.empty().selectpicker('refresh');
+                return;
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetLinesByFacilities", "Dashboard")",
+                data: { facilityIds: facilities.join(',') },
+                success: function (data) {
+                    console.log("Data line dari server:", data); // ← CEK INI
+                    $lineSelect.empty();
+                    $.each(data, function (i, item) {
+                        $lineSelect.append('<option value="' + item.code + '">' + item.code + '</option>');
+                    });
+                    $lineSelect.selectpicker('refresh');
+                    $lineSelect.selectpicker('selectAll');
+
+                    var allLines = data.map(function(item) { return item.code; });
+                    loadStations(allLines.join(','));
+                },
+                error: function(xhr) {
+                    console.log("ERROR:", xhr.status, xhr.responseText); // ← CEK INI
+                }
+            });
+        });
+
+        // ===== CASCADING: Line → Station =====
+        $('#select_filter_3').on('change', function () {
+            var lines = $(this).val();
+            if (!lines || lines.length === 0) {
+                $('#select_filter_4').empty().selectpicker('refresh');
+                return;
+            }
+            loadStations(lines.join(','));
+        });
     });
 
     $(document).on('hidden.bs.modal', function () {
         if ($('.modal:visible').length) $('body').addClass('modal-open');
     });
+
+    // ===== HELPER: Load stations berdasarkan line =====
+    function loadStations(lineNosString) {
+        var $stationSelect = $('#select_filter_4');
+
+        if (!lineNosString) {
+            $stationSelect.empty().selectpicker('refresh');
+            return;
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetStationsByLines", "Dashboard")",
+            data: { lineNos: lineNosString },
+            success: function (data) {
+                $stationSelect.empty();
+                $.each(data, function (i, item) {
+                    $stationSelect.append('<option value="' + item.code + '">' + item.code + '</option>');
+                });
+                $stationSelect.selectpicker('refresh');
+                $stationSelect.selectpicker('selectAll');
+            }
+        });
+    }
 
     // ===== HELPER: Ambil filter aktif =====
     function getFilters() {
