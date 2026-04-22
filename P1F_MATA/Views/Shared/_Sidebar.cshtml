@@ -16,7 +16,7 @@
     </a>
 
     <div class="sidebar d-flex flex-column" style="height: calc(100% - 57px);">
-        <nav class="mt-3 flex-grow-1 overflow-auto">
+        <nav class="mt-3 flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
 
                 @if (userLevels.Contains("superadmin") || userLevels.Contains("mat_admin") || userLevels.Contains("mat"))
